@@ -22,57 +22,66 @@ fun HotbarView(
     selectedIndex: Int,
     onSelectIndex: (Int) -> Unit
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 12.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
     ) {
-        for (i in 0 until 6) {
-            val slot = game.hotbar[i]
-            val isSelected = (i == selectedIndex)
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xDD18241B))
+                .border(2.dp, Color(0xFF4A6B50), RoundedCornerShape(16.dp))
+                .padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            for (i in 0 until 6) {
+                val slot = game.hotbar[i]
+                val isSelected = (i == selectedIndex)
 
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(
-                        if (isSelected) Color(0xDD382814) else Color(0xAA1E1B18)
-                    )
-                    .border(
-                        width = if (isSelected) 2.dp else 1.dp,
-                        color = if (isSelected) Color(0xFFFFD700) else Color(0x88888888),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    .clickable { onSelectIndex(i) },
-                contentAlignment = Alignment.Center
-            ) {
-                if (slot != null) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = slot.item.iconEmoji,
-                            fontSize = 24.sp
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isSelected) Color(0xFF4A6B50) else Color(0xFF223325)
                         )
-                        if (slot.count > 1) {
+                        .border(
+                            width = if (isSelected) 3.dp else 1.dp,
+                            color = if (isSelected) Color(0xFFFFD700) else Color(0xFF334A38),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .clickable {
+                            onSelectIndex(i)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (slot != null) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
                             Text(
-                                text = "x${slot.count}",
-                                color = Color.White,
+                                text = slot.item.iconEmoji,
+                                fontSize = 22.sp
+                            )
+                            Text(
+                                text = if (slot.count > 1) "x${slot.count}" else "${i + 1}",
+                                color = if (isSelected) Color(0xFFFFD700) else Color.LightGray,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                    } else {
+                        Text(
+                            text = "[${i + 1}]",
+                            color = Color(0x88FFFFFF),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
-                } else {
-                    Text(
-                        text = "${i + 1}",
-                        color = Color(0x66FFFFFF),
-                        fontSize = 14.sp
-                    )
                 }
             }
         }

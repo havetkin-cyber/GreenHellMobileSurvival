@@ -37,20 +37,10 @@ fun SurvivalGameApp(game: SurvivalGame) {
     var glView by remember { mutableStateOf<SurvivalGLSurfaceView?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 1. 3D OpenGL Game Canvas
-        AndroidView(
-            factory = { ctx ->
-                SurvivalGLSurfaceView(ctx, game).also { glView = it }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-
-        // 2. Camera Drag Swipe Overlay (Right half of screen)
+        // 1. 3D OpenGL Game Canvas with Camera Look Swipe Gesture
         Box(
             modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(0.5f)
-                .align(Alignment.CenterEnd)
+                .fillMaxSize()
                 .pointerInput(Unit) {
                     detectDragGestures { change, dragAmount ->
                         change.consume()
@@ -58,41 +48,55 @@ fun SurvivalGameApp(game: SurvivalGame) {
                         game.playerPitch = (game.playerPitch - dragAmount.y * game.lookSensitivity).coerceIn(-80f, 80f)
                     }
                 }
-        )
+        ) {
+            AndroidView(
+                factory = { ctx ->
+                    SurvivalGLSurfaceView(ctx, game).also { glView = it }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
-        // 3. Top Status Bar with Compass & Mini-Vitals
+        // 2. Top Bar: Minimap & Vitals + Action Buttons
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(12.dp),
+                .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
-            // Health, Sanity & Level Badge
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xBB111B13))
-                    .border(1.dp, Color(0xFF3B573F), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("❤️ ${game.health.toInt()}%", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("🧠 ${game.sanity.toInt()}%", color = Color(0xFF88CCFF), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("⭐ Lvl ${game.level}", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            // Minimap & Vitals
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                MinimapOverlayView(game = game, renderer = glView?.renderer)
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xCC111B13))
+                        .border(1.dp, Color(0xFF3B573F), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("❤️ ${game.health.toInt()}%", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("🧠 ${game.sanity.toInt()}%", color = Color(0xFF88CCFF), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("⭐ Lvl ${game.level}", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
                 }
             }
 
-            // Top Action Menu Buttons
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            // Top Right Menu Buttons
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Button(
                     onClick = { isGuideOpen = true },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xDD3B573F)),
-                    modifier = Modifier.height(34.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    modifier = Modifier.height(32.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp)
                 ) {
                     Text("📖 Zápisník", fontSize = 11.sp, color = Color.White)
                 }
@@ -100,8 +104,8 @@ fun SurvivalGameApp(game: SurvivalGame) {
                 Button(
                     onClick = { isSmartwatchOpen = true },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xDD2D4232)),
-                    modifier = Modifier.height(34.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    modifier = Modifier.height(32.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp)
                 ) {
                     Text("⌚ Hodinky", fontSize = 11.sp, color = Color.White)
                 }
@@ -109,8 +113,8 @@ fun SurvivalGameApp(game: SurvivalGame) {
                 Button(
                     onClick = { isBodyInspectionOpen = true },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xDD3B573F)),
-                    modifier = Modifier.height(34.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    modifier = Modifier.height(32.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp)
                 ) {
                     Text("🩸 Rany", fontSize = 11.sp, color = Color.White)
                 }
@@ -118,22 +122,22 @@ fun SurvivalGameApp(game: SurvivalGame) {
                 Button(
                     onClick = { isInventoryOpen = true },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xDD4A6B50)),
-                    modifier = Modifier.height(34.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    modifier = Modifier.height(32.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp)
                 ) {
                     Text("🎒 Batoh", fontSize = 11.sp, color = Color.White)
                 }
             }
         }
 
-        // 4. Toast Notification Overlay
+        // 3. Toast Notification Overlay
         game.currentToast?.let { toast ->
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 64.dp)
+                    .padding(top = 110.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xDD222222))
+                    .background(Color(0xEE222222))
                     .border(1.dp, Color(0xFFFFD700), RoundedCornerShape(16.dp))
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
@@ -141,14 +145,14 @@ fun SurvivalGameApp(game: SurvivalGame) {
             }
         }
 
-        // 5. Left Virtual Movement Joystick
+        // 4. Left Virtual Movement Joystick
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 24.dp, bottom = 24.dp)
-                .size(130.dp)
+                .padding(start = 16.dp, bottom = 80.dp)
+                .size(120.dp)
                 .clip(CircleShape)
-                .background(Color(0x66000000))
+                .background(Color(0x77000000))
                 .border(2.dp, Color(0xAAFFFFFF), CircleShape)
                 .pointerInput(Unit) {
                     detectDragGestures(
@@ -170,17 +174,17 @@ fun SurvivalGameApp(game: SurvivalGame) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(50.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
                     .background(Color(0xAA888888))
             )
         }
 
-        // 6. Right Main Action / Attack / Swing Button
+        // 5. Right Main Action / Attack / Swing Button
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 24.dp, bottom = 90.dp)
+                .padding(end = 20.dp, bottom = 80.dp)
         ) {
             Button(
                 onClick = {
@@ -188,17 +192,17 @@ fun SurvivalGameApp(game: SurvivalGame) {
                 },
                 modifier = Modifier.size(72.dp),
                 shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xDD8B0000))
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xEE8B0000))
             ) {
-                Text("🪓", fontSize = 30.sp)
+                Text("🪓", fontSize = 28.sp)
             }
         }
 
-        // 7. Bottom Hotbar
+        // 6. Bottom Hotbar (Quick Slot Selection 1-6)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 8.dp)
+                .padding(bottom = 6.dp)
         ) {
             HotbarView(
                 game = game,
@@ -206,11 +210,17 @@ fun SurvivalGameApp(game: SurvivalGame) {
                 onSelectIndex = { idx ->
                     selectedHotbarIndex = idx
                     game.selectedHotbarIndex = idx
+                    val item = game.hotbar[idx]?.item
+                    if (item != null) {
+                        game.showToast("Vybraný predmet: ${item.name}")
+                    } else {
+                        game.showToast("Prázdny slot ${idx + 1}")
+                    }
                 }
             )
         }
 
-        // 8. Modals Overlays
+        // 7. Modals Overlays
         AnimatedVisibility(visible = isGuideOpen) {
             SurvivalGuideView(
                 game = game,
