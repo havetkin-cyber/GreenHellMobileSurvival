@@ -1,6 +1,11 @@
 package com.example.test.game
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -197,51 +202,53 @@ data class WorldStructure(
 )
 
 class SurvivalGame(private val context: Context) {
-    // Current Active Screen
-    var currentScreen: GameScreen = GameScreen.MAIN_MENU
+    // Current Active Screen as Observable Compose State
+    var currentScreen by mutableStateOf(GameScreen.MAIN_MENU)
 
     // Settings
-    var graphicsQuality: GraphicsQuality = GraphicsQuality.ULTRA_3D
-    var lookSensitivity: Float = 0.25f
-    var soundVolume: Float = 0.8f
+    var graphicsQuality by mutableStateOf(GraphicsQuality.ULTRA_3D)
+    var lookSensitivity by mutableFloatStateOf(0.25f)
+    var soundVolume by mutableFloatStateOf(0.8f)
 
     // Vitals
-    var health: Float = 100f
-    var stamina: Float = 100f
-    var hydration: Float = 80f
-    var carbs: Float = 70f
-    var protein: Float = 60f
-    var fat: Float = 50f
-    var sanity: Float = 100f
-    var poisonLevel: Float = 0f
-    var bodyTemp: Float = 36.6f
-    var parasites: Int = 0
+    var health by mutableFloatStateOf(100f)
+    var stamina by mutableFloatStateOf(100f)
+    var hydration by mutableFloatStateOf(80f)
+    var carbs by mutableFloatStateOf(70f)
+    var protein by mutableFloatStateOf(60f)
+    var fat by mutableFloatStateOf(50f)
+    var sanity by mutableFloatStateOf(100f)
+    var poisonLevel by mutableFloatStateOf(0f)
+    var bodyTemp by mutableFloatStateOf(36.6f)
+    var parasites by mutableIntStateOf(0)
 
     // Boss State
-    var bossHealth: Float = 300f
-    var isBossDefeated: Boolean = false
+    var bossHealth by mutableFloatStateOf(300f)
+    var isBossDefeated by mutableStateOf(false)
 
     // XP & Leveling
-    var xp: Int = 0
-    var level: Int = 1
+    var xp by mutableIntStateOf(0)
+    var level by mutableIntStateOf(1)
     val unlockedPerkIds = mutableSetOf<String>()
 
     // Armor
-    var equippedArmorValue: Float = 0f
+    var equippedArmorValue by mutableFloatStateOf(0f)
 
     // Weather Engine
-    var isRaining: Boolean = false
-    var rainIntensity: Float = 0f
-    var weatherTimer: Float = 0f
+    var isRaining by mutableStateOf(false)
+    var rainIntensity by mutableFloatStateOf(0f)
+    var weatherTimer by mutableFloatStateOf(0f)
 
     // Day & Night
-    var timeOfDay: Float = 10.0f
-    var dayCount: Int = 1
+    var timeOfDay by mutableFloatStateOf(10.0f)
+    var dayCount by mutableIntStateOf(1)
 
     // Inventory & Hotbar (6 Slots)
     val inventory = mutableListOf<ItemStack>()
     val hotbar = Array<ItemStack?>(6) { null }
-    var selectedHotbarIndex: Int = 0
+    var selectedHotbarIndex by mutableIntStateOf(0)
+
+    val chestStorage = mutableListOf<ItemStack>()
 
     // Afflictions
     val afflictions = mutableListOf<BodyAffliction>()
@@ -257,8 +264,8 @@ class SurvivalGame(private val context: Context) {
     var playerPitch = 0f
 
     // Toast Messages
-    var currentToast: String? = null
-    var toastTimer: Float = 0f
+    var currentToast by mutableStateOf<String?>(null)
+    var toastTimer = 0f
 
     init {
         initStarterKit()
