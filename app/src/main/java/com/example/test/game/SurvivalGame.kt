@@ -1,6 +1,7 @@
 package com.example.test.game
 
 import android.content.Context
+import org.json.JSONArray
 import org.json.JSONObject
 
 // Item Categories
@@ -34,7 +35,6 @@ data class ItemType(
 )
 
 object Items {
-    // Basic Materials
     val STICK = ItemType("stick", "Drevená palica", "Základné drevo zo stromu.", ItemCategory.MATERIAL, "🪵")
     val LONG_STICK = ItemType("long_stick", "Dlhá palica", "Silná dlhá vetva na zbrane a stavby.", ItemCategory.MATERIAL, "🦯")
     val LOG = ItemType("log", "Kmeň dreva", "Ťažký kmeň na stavbu stien búd.", ItemCategory.MATERIAL, "🪵", maxStack = 5)
@@ -46,7 +46,6 @@ object Items {
     val RESIN = ItemType("resin", "Živica", "Horľavá smola zo stromov.", ItemCategory.MATERIAL, "💧")
     val PALM_LEAF = ItemType("palm_leaf", "Palmový list", "Veľký list na prístrešky.", ItemCategory.MATERIAL, "🍃")
 
-    // Food & Medical
     val MOLINERIA_LEAF = ItemType("molineria", "List Molinerie", "Liečivá rastlina s hojivým účinkom.", ItemCategory.MEDICAL, "🌱")
     val TOBACCO_LEAF = ItemType("tobacco", "Tabakový list", "Utišuje protiváhové travy a jed.", ItemCategory.MEDICAL, "🍃")
     val CHARCOAL = ItemType("charcoal", "Drevené uhlie", "Aktívne uhlie lieči otravu a parazity.", ItemCategory.MEDICAL, "🖤", sanityGain = 5f, healthGain = 10f)
@@ -58,7 +57,6 @@ object Items {
     val RAW_FISH = ItemType("raw_fish", "Čerstvá ryba", "Ryba ulovená v rieke.", ItemCategory.FOOD, "🐟", proteinGain = 30f, fatGain = 10f)
     val COCONUT_CANTEEN = ItemType("canteen", "Čutora z kokosu", "Čerstvá čista pitná voda.", ItemCategory.FOOD, "🧉", hydrationGain = 50f, isEquippable = true)
 
-    // Tools & Weapons
     val STONE_AXE = ItemType("stone_axe", "Kamená sekera", "Nástroj na rúbanie stromov a obrana.", ItemCategory.TOOL, "🪓", isEquippable = true, damage = 35f)
     val OBSIDIAN_AXE = ItemType("obsidian_axe", "Obsidiánová sekera", "Extrémne ostrá sekera s vysokým poškodením.", ItemCategory.TOOL, "🪓", isEquippable = true, damage = 65f)
     val WOODEN_SPEAR = ItemType("wooden_spear", "Drevená kopija", "Smrtiaca zbraň na lov zvody a obrana.", ItemCategory.WEAPON, "🗡️", isEquippable = true, damage = 55f)
@@ -67,19 +65,16 @@ object Items {
     val ARROW = ItemType("arrow", "Šíp", "Šíp s kamenným hrotom do luku.", ItemCategory.WEAPON, "🏹", maxStack = 20)
     val FIRE_TORCH = ItemType("fire_torch", "Hooriaca fakľa", "Osvetľuje temnú džungľu v noci.", ItemCategory.TOOL, "🔥", isEquippable = true, damage = 15f)
 
-    // Armor
-    val BONE_ARMOR = ItemType("bone_armor", "Kostené brnenie", "Chráni telo pred útokmi monštier a kanibalov.", ItemCategory.ARMOR, "🛡️", armorValue = 40f, isEquippable = true)
+    val BONE_ARMOR = ItemType("bone_armor", "Kostené brnenie", "Chráni telo pred útokmi monštier.", ItemCategory.ARMOR, "🛡️", armorValue = 40f, isEquippable = true)
 
-    // Medical
     val LEAF_BANDAGE = ItemType("bandage", "Bylinkový obväz", "Lieči rany a uštipnutia.", ItemCategory.MEDICAL, "🩹", healthGain = 40f, isEquippable = true)
     val ANTIVENOM_BANDAGE = ItemType("antivenom_bandage", "Protijedový obväz", "Neutralizuje jed z hadieho uštipnutia.", ItemCategory.MEDICAL, "🧪", healthGain = 50f, isEquippable = true)
 
-    // Structures & Base Components
     val CAMPFIRE_ITEM = ItemType("campfire_item", "Ohnisko", "Miesto na varenie a teplo.", ItemCategory.STRUCTURE, "🏕️")
     val SHELTER_ITEM = ItemType("shelter_item", "Prístrešok", "Bezpečné miesto na spánok.", ItemCategory.STRUCTURE, "🛖")
     val LOG_WALL_ITEM = ItemType("log_wall_item", "Stena z Kmeňov", "Pevná stena základne proti monštrám.", ItemCategory.STRUCTURE, "🪵")
     val GATE_ITEM = ItemType("gate_item", "Drevená Brána", "Vstupná brána do tvojej búde/základne.", ItemCategory.STRUCTURE, "🚪")
-    val LEAF_BED_ITEM = ItemType("leaf_bed_item", "Posteľ z Listov", "Pohodlná posteľ na spánok v búde.", ItemCategory.STRUCTURE, "🛏️")
+    val LEAF_BED_ITEM = ItemType("leaf_bed_item", "Posteľ z Listov", "Pohodlné lôžko v búde na spánok.", ItemCategory.STRUCTURE, "🛏️")
     val STORAGE_CHEST_ITEM = ItemType("chest_item", "Úložná Truhlica", "Ukladaj svoje zásoby v bezpečia.", ItemCategory.STRUCTURE, "📦")
     val SPIKE_TRAP_ITEM = ItemType("spike_trap_item", "Ostnatá Pasca", "Spôsobí masívne poškodenie monštrám.", ItemCategory.STRUCTURE, "⚔️")
     val WATER_COLLECTOR_ITEM = ItemType("water_collector_item", "Zberač Dažďovej Vody", "Zbiera čerstvú dažďovú vodu.", ItemCategory.STRUCTURE, "🌧️")
@@ -126,8 +121,6 @@ object CraftingRecipes {
         CraftingRecipe(Items.LEAF_BANDAGE, 1, listOf(RecipeRequirement(Items.MOLINERIA_LEAF, 2))),
         CraftingRecipe(Items.ANTIVENOM_BANDAGE, 1, listOf(RecipeRequirement(Items.LEAF_BANDAGE, 1), RecipeRequirement(Items.TOBACCO_LEAF, 1))),
         CraftingRecipe(Items.COCONUT_CANTEEN, 1, listOf(RecipeRequirement(Items.COCONUT, 1), RecipeRequirement(Items.FIBER, 1))),
-        
-        // Base Building Recipes
         CraftingRecipe(Items.CAMPFIRE_ITEM, 1, listOf(RecipeRequirement(Items.STICK, 4), RecipeRequirement(Items.STONE, 4))),
         CraftingRecipe(Items.SHELTER_ITEM, 1, listOf(RecipeRequirement(Items.LONG_STICK, 4), RecipeRequirement(Items.PALM_LEAF, 6))),
         CraftingRecipe(Items.LOG_WALL_ITEM, 1, listOf(RecipeRequirement(Items.LOG, 4), RecipeRequirement(Items.FIBER, 2))),
@@ -137,6 +130,26 @@ object CraftingRecipes {
         CraftingRecipe(Items.SPIKE_TRAP_ITEM, 1, listOf(RecipeRequirement(Items.STICK, 6), RecipeRequirement(Items.SHARP_STONE, 2))),
         CraftingRecipe(Items.WATER_COLLECTOR_ITEM, 1, listOf(RecipeRequirement(Items.STICK, 4), RecipeRequirement(Items.PALM_LEAF, 4), RecipeRequirement(Items.COCONUT, 1))),
         CraftingRecipe(Items.DRYING_RACK_ITEM, 1, listOf(RecipeRequirement(Items.LONG_STICK, 4), RecipeRequirement(Items.FIBER, 4)))
+    )
+}
+
+// Survival Perks / Skills
+data class Perk(
+    val id: String,
+    val name: String,
+    val description: String,
+    val reqLevel: Int,
+    val iconEmoji: String,
+    var isUnlocked: Boolean = false
+)
+
+object Perks {
+    val ALL = listOf(
+        Perk("master_lumberjack", "Majster Drevorubač", "Získaj 2x viac dreva zo stromov", 2, "🪓"),
+        Perk("hunter_instinct", "Lovecký Inštinkt", "Zvyšuje poškodenie kopijou a lukom o +30%", 3, "🎯"),
+        Perk("hardened_skin", "Oceľová Pokožka", "Znižuje zranenie od monštier o -25%", 4, "🛡️"),
+        Perk("herbalist", "Bylinkár", "Obväzy liečia o +50% viac HP", 5, "🌿"),
+        Perk("iron_stomach", "Železný Žalúdok", "Imunitači proti otrave z jedla a parazitom", 6, "🥩")
     )
 }
 
@@ -156,7 +169,7 @@ data class BodyAffliction(
 
 data class WorldStructure(
     val id: String,
-    val type: String, // "campfire", "shelter", "log_wall", "gate", "leaf_bed", "chest", "spike_trap", "water_collector", "drying_rack"
+    val type: String,
     val x: Float,
     val y: Float,
     val z: Float,
@@ -179,7 +192,12 @@ class SurvivalGame(private val context: Context) {
     var poisonLevel: Float = 0f
     var parasites: Int = 0
 
-    // Equipped Armor Value
+    // XP & Leveling Engine
+    var xp: Int = 0
+    var level: Int = 1
+    val unlockedPerkIds = mutableSetOf<String>()
+
+    // Armor
     var equippedArmorValue: Float = 0f
 
     // Weather Engine
@@ -211,6 +229,9 @@ class SurvivalGame(private val context: Context) {
     var playerYaw = 0f
     var playerPitch = 0f
 
+    // Sensitivity Settings
+    var lookSensitivity: Float = 0.25f
+
     // Toast Messages
     var currentToast: String? = null
     var toastTimer: Float = 0f
@@ -234,13 +255,40 @@ class SurvivalGame(private val context: Context) {
         afflictions.add(BodyAffliction(BodyPart.LEFT_ARM, "Leech", "Prisatá pijavica pije tvoju krv!", "Hand"))
     }
 
+    fun addXP(amount: Int) {
+        xp += amount
+        val reqXp = level * 100
+        if (xp >= reqXp) {
+            xp -= reqXp
+            level++
+            showToast("⭐ POSTÚPIL SI NA LEVEL $level! Odomknuté nové zručnosti v Zápisníku.")
+            SoundManager.playCraftSound()
+        }
+    }
+
+    fun isPerkUnlocked(perkId: String): Boolean {
+        return unlockedPerkIds.contains(perkId)
+    }
+
+    fun unlockPerk(perk: Perk): Boolean {
+        if (level >= perk.reqLevel && !isPerkUnlocked(perk.id)) {
+            unlockedPerkIds.add(perk.id)
+            showToast("🌟 Odomknutá zručnosť: ${perk.name}!")
+            return true
+        }
+        return false
+    }
+
     fun showToast(msg: String) {
         currentToast = msg
         toastTimer = 2.5f
     }
 
     fun applyDamageToPlayer(rawDamage: Float) {
-        val finalDamage = (rawDamage * (1f - equippedArmorValue / 100f)).coerceAtLeast(2f)
+        var finalArmor = equippedArmorValue
+        if (isPerkUnlocked("hardened_skin")) finalArmor += 25f
+
+        val finalDamage = (rawDamage * (1f - finalArmor / 100f)).coerceAtLeast(2f)
         health = (health - finalDamage).coerceIn(0f, 100f)
         sanity = (sanity - 5f).coerceIn(0f, 100f)
         showToast("⚠️ Zásah monštrom! -${finalDamage.toInt()} HP")
@@ -256,7 +304,8 @@ class SurvivalGame(private val context: Context) {
         if (timeOfDay >= 24f) {
             timeOfDay -= 24f
             dayCount++
-            showToast("Prežil si $dayCount. deň v džungli!")
+            addXP(50) // Bonus XP per survived day
+            showToast("Prežil si $dayCount. deň v džungli! +50 XP")
         }
 
         weatherTimer += deltaTime
@@ -282,7 +331,7 @@ class SurvivalGame(private val context: Context) {
         protein = (protein - deltaTime * 0.08f).coerceIn(0f, 100f)
         fat = (fat - deltaTime * 0.05f).coerceIn(0f, 100f)
 
-        if (poisonLevel > 0f) {
+        if (poisonLevel > 0f && !isPerkUnlocked("iron_stomach")) {
             health -= deltaTime * 0.4f
             poisonLevel = (poisonLevel - deltaTime * 0.05f).coerceAtLeast(0f)
         }
@@ -318,6 +367,7 @@ class SurvivalGame(private val context: Context) {
                         struct.hasItemInProcess = false
                         struct.processProgress = 0f
                         addItem(Items.COOKED_MEAT, 1)
+                        addXP(15)
                         showToast("🥩 Mäso je upečené! Uložené do batohu.")
                     }
                 }
@@ -327,6 +377,7 @@ class SurvivalGame(private val context: Context) {
                     struct.hasItemInProcess = false
                     struct.processProgress = 0f
                     addItem(Items.DRIED_MEAT, 1)
+                    addXP(20)
                     showToast("🥓 Sušené mäso je hotové!")
                 }
             }
@@ -409,12 +460,16 @@ class SurvivalGame(private val context: Context) {
         if (!canCraft(recipe)) return false
         recipe.requirements.forEach { req -> removeItem(req.item, req.count) }
         addItem(recipe.resultItem, recipe.resultCount)
-        showToast("Vyrobil si: ${recipe.resultItem.name}")
+        addXP(25)
+        showToast("Vyrobil si: ${recipe.resultItem.name} (+25 XP)")
         return true
     }
 
     fun treatAffliction(affliction: BodyAffliction, toolItem: ItemType?) {
         var cured = false
+        var healBonus = 20f
+        if (isPerkUnlocked("herbalist")) healBonus += 15f
+
         if (affliction.requiredTreatment == "Hand") {
             cured = true
         } else if (affliction.requiredTreatment == "Antivenom" && toolItem?.id == Items.ANTIVENOM_BANDAGE.id) {
@@ -428,9 +483,10 @@ class SurvivalGame(private val context: Context) {
 
         if (cured) {
             afflictions.remove(affliction)
-            health = (health + 20f).coerceIn(0f, 100f)
+            health = (health + healBonus).coerceIn(0f, 100f)
             sanity = (sanity + 10f).coerceIn(0f, 100f)
-            showToast("Ošetril si ${affliction.bodyPart.displayName}!")
+            addXP(20)
+            showToast("Ošetril si ${affliction.bodyPart.displayName}! (+20 XP)")
         } else {
             showToast("Na toto ošetrenie potrebuješ správny liek/obväz!")
         }
@@ -442,6 +498,7 @@ class SurvivalGame(private val context: Context) {
         stamina = 100f
         health = (health + 30f).coerceIn(0f, 100f)
         sanity = (sanity + 25f).coerceIn(0f, 100f)
+        addXP(30)
         showToast("Vyspal si sa do nového dňa v búde! Hra uložená.")
         saveGame()
     }
@@ -458,6 +515,9 @@ class SurvivalGame(private val context: Context) {
                 put("fat", fat)
                 put("sanity", sanity)
                 put("poisonLevel", poisonLevel)
+                put("xp", xp)
+                put("level", level)
+                put("unlockedPerks", JSONArray(unlockedPerkIds))
                 put("dayCount", dayCount)
                 put("timeOfDay", timeOfDay)
                 put("playerX", playerX)
@@ -483,6 +543,17 @@ class SurvivalGame(private val context: Context) {
             fat = json.optDouble("fat", 50.0).toFloat()
             sanity = json.optDouble("sanity", 100.0).toFloat()
             poisonLevel = json.optDouble("poisonLevel", 0.0).toFloat()
+            xp = json.optInt("xp", 0)
+            level = json.optInt("level", 1)
+
+            unlockedPerkIds.clear()
+            val perksArray = json.optJSONArray("unlockedPerks")
+            if (perksArray != null) {
+                for (i in 0 until perksArray.length()) {
+                    unlockedPerkIds.add(perksArray.getString(i))
+                }
+            }
+
             dayCount = json.optInt("dayCount", 1)
             timeOfDay = json.optDouble("timeOfDay", 10.0).toFloat()
             playerX = json.optDouble("playerX", 0.0).toFloat()

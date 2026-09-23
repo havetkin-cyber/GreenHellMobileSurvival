@@ -31,6 +31,7 @@ fun SurvivalGameApp(game: SurvivalGame) {
     var isSmartwatchOpen by remember { mutableStateOf(false) }
     var isBodyInspectionOpen by remember { mutableStateOf(false) }
     var isInventoryOpen by remember { mutableStateOf(false) }
+    var isGuideOpen by remember { mutableStateOf(false) }
 
     var selectedHotbarIndex by remember { mutableIntStateOf(game.selectedHotbarIndex) }
     var glView by remember { mutableStateOf<SurvivalGLSurfaceView?>(null) }
@@ -53,13 +54,13 @@ fun SurvivalGameApp(game: SurvivalGame) {
                 .pointerInput(Unit) {
                     detectDragGestures { change, dragAmount ->
                         change.consume()
-                        game.playerYaw += dragAmount.x * 0.25f
-                        game.playerPitch = (game.playerPitch - dragAmount.y * 0.25f).coerceIn(-80f, 80f)
+                        game.playerYaw += dragAmount.x * game.lookSensitivity
+                        game.playerPitch = (game.playerPitch - dragAmount.y * game.lookSensitivity).coerceIn(-80f, 80f)
                     }
                 }
         )
 
-        // 3. Top Status & Modal Bar
+        // 3. Top Status Bar with Compass & Mini-Vitals
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -68,48 +69,59 @@ fun SurvivalGameApp(game: SurvivalGame) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Health & Vitals Gauge
+            // Health, Sanity & Level Badge
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color(0xBB111B13))
                     .border(1.dp, Color(0xFF3B573F), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("❤️ ${game.health.toInt()}%", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("⚡ ${game.stamina.toInt()}%", color = Color.Yellow, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("❤️ ${game.health.toInt()}%", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("🧠 ${game.sanity.toInt()}%", color = Color(0xFF88CCFF), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("⭐ Lvl ${game.level}", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
 
-            // Top Menu Buttons
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Top Action Menu Buttons
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(
+                    onClick = { isGuideOpen = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xDD3B573F)),
+                    modifier = Modifier.height(34.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Text("📖 Zápisník", fontSize = 11.sp, color = Color.White)
+                }
+
                 Button(
                     onClick = { isSmartwatchOpen = true },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xDD2D4232)),
-                    modifier = Modifier.height(36.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp)
+                    modifier = Modifier.height(34.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
-                    Text("⌚ Hodinky", fontSize = 12.sp, color = Color.White)
+                    Text("⌚ Hodinky", fontSize = 11.sp, color = Color.White)
                 }
 
                 Button(
                     onClick = { isBodyInspectionOpen = true },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xDD3B573F)),
-                    modifier = Modifier.height(36.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp)
+                    modifier = Modifier.height(34.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
-                    Text("🩸 Rany", fontSize = 12.sp, color = Color.White)
+                    Text("🩸 Rany", fontSize = 11.sp, color = Color.White)
                 }
 
                 Button(
                     onClick = { isInventoryOpen = true },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xDD4A6B50)),
-                    modifier = Modifier.height(36.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp)
+                    modifier = Modifier.height(34.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
                 ) {
-                    Text("🎒 Batoh", fontSize = 12.sp, color = Color.White)
+                    Text("🎒 Batoh", fontSize = 11.sp, color = Color.White)
                 }
             }
         }
@@ -119,13 +131,13 @@ fun SurvivalGameApp(game: SurvivalGame) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 70.dp)
+                    .padding(top = 64.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xDD222222))
                     .border(1.dp, Color(0xFFFFD700), RoundedCornerShape(16.dp))
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text(toast, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(toast, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             }
         }
 
@@ -140,7 +152,7 @@ fun SurvivalGameApp(game: SurvivalGame) {
                 .border(2.dp, Color(0xAAFFFFFF), CircleShape)
                 .pointerInput(Unit) {
                     detectDragGestures(
-                        onDragEnd = { /* Stop movement */ },
+                        onDragEnd = { },
                         onDrag = { change, dragAmount ->
                             change.consume()
                             val radYaw = Math.toRadians(game.playerYaw.toDouble())
@@ -198,7 +210,14 @@ fun SurvivalGameApp(game: SurvivalGame) {
             )
         }
 
-        // 8. Smartwatch Modal Overlay
+        // 8. Modals Overlays
+        AnimatedVisibility(visible = isGuideOpen) {
+            SurvivalGuideView(
+                game = game,
+                onClose = { isGuideOpen = false }
+            )
+        }
+
         AnimatedVisibility(visible = isSmartwatchOpen) {
             SmartwatchView(
                 game = game,
@@ -206,7 +225,6 @@ fun SurvivalGameApp(game: SurvivalGame) {
             )
         }
 
-        // 9. Body Inspection Modal Overlay
         AnimatedVisibility(visible = isBodyInspectionOpen) {
             BodyInspectionView(
                 game = game,
@@ -214,7 +232,6 @@ fun SurvivalGameApp(game: SurvivalGame) {
             )
         }
 
-        // 10. Backpack Inventory & Crafting Modal Overlay
         AnimatedVisibility(visible = isInventoryOpen) {
             InventoryCraftingView(
                 game = game,
