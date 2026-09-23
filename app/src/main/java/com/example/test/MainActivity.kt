@@ -20,12 +20,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         game = SurvivalGame(applicationContext)
-        game.loadGame()
 
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    SurvivalGameApp(game = game)
+                    SurvivalGameApp(
+                        game = game,
+                        onQuitApp = { finish() }
+                    )
                 }
             }
         }

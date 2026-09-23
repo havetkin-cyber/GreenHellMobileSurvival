@@ -4,6 +4,19 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
+enum class GameScreen {
+    MAIN_MENU,
+    PLAYING,
+    PAUSED,
+    SETTINGS
+}
+
+enum class GraphicsQuality(val displayName: String) {
+    LOW("Nízka (30 FPS)"),
+    MEDIUM("Stredná (Vyvážená)"),
+    ULTRA_3D("AAA Ultra 3D (60 FPS)")
+}
+
 // Item Categories
 enum class ItemCategory(val displayName: String) {
     TOOL("Nástroje"),
@@ -184,6 +197,14 @@ data class WorldStructure(
 )
 
 class SurvivalGame(private val context: Context) {
+    // Current Active Screen
+    var currentScreen: GameScreen = GameScreen.MAIN_MENU
+
+    // Settings
+    var graphicsQuality: GraphicsQuality = GraphicsQuality.ULTRA_3D
+    var lookSensitivity: Float = 0.25f
+    var soundVolume: Float = 0.8f
+
     // Vitals
     var health: Float = 100f
     var stamina: Float = 100f
@@ -193,11 +214,10 @@ class SurvivalGame(private val context: Context) {
     var fat: Float = 50f
     var sanity: Float = 100f
     var poisonLevel: Float = 0f
-    var bodyTemp: Float = 36.6f // Body Temperature in °C (Fever mechanism)
+    var bodyTemp: Float = 36.6f
     var parasites: Int = 0
 
-    // Ancient Boss State
-    var isBossActive: Boolean = true
+    // Boss State
     var bossHealth: Float = 300f
     var isBossDefeated: Boolean = false
 
@@ -209,7 +229,7 @@ class SurvivalGame(private val context: Context) {
     // Armor
     var equippedArmorValue: Float = 0f
 
-    // Weather
+    // Weather Engine
     var isRaining: Boolean = false
     var rainIntensity: Float = 0f
     var weatherTimer: Float = 0f
@@ -222,8 +242,6 @@ class SurvivalGame(private val context: Context) {
     val inventory = mutableListOf<ItemStack>()
     val hotbar = Array<ItemStack?>(6) { null }
     var selectedHotbarIndex: Int = 0
-
-    val chestStorage = mutableListOf<ItemStack>()
 
     // Afflictions
     val afflictions = mutableListOf<BodyAffliction>()
@@ -238,15 +256,18 @@ class SurvivalGame(private val context: Context) {
     var playerYaw = 0f
     var playerPitch = 0f
 
-    // Sensitivity Settings
-    var lookSensitivity: Float = 0.25f
-
     // Toast Messages
     var currentToast: String? = null
     var toastTimer: Float = 0f
 
     init {
-        // Starter Kit
+        initStarterKit()
+    }
+
+    fun initStarterKit() {
+        inventory.clear()
+        for (i in hotbar.indices) hotbar[i] = null
+
         addItem(Items.STONE_AXE, 1)
         addItem(Items.WOODEN_SPEAR, 1)
         addItem(Items.SURVIVAL_BOW, 1)
@@ -261,7 +282,32 @@ class SurvivalGame(private val context: Context) {
         hotbar[2] = ItemStack(Items.SURVIVAL_BOW, 1)
         hotbar[3] = ItemStack(Items.FIRE_TORCH, 1)
 
+        afflictions.clear()
         afflictions.add(BodyAffliction(BodyPart.LEFT_ARM, "Leech", "Prisatá pijavica pije tvoju krv!", "Hand"))
+    }
+
+    fun startNewGame() {
+        health = 100f
+        stamina = 100f
+        hydration = 80f
+        carbs = 70f
+        protein = 60f
+        fat = 50f
+        sanity = 100f
+        poisonLevel = 0f
+        bodyTemp = 36.6f
+        bossHealth = 300f
+        isBossDefeated = false
+        dayCount = 1
+        timeOfDay = 10.0f
+        playerX = 0f
+        playerY = 1.6f
+        playerZ = 0f
+        playerYaw = 0f
+        playerPitch = 0f
+        initStarterKit()
+        currentScreen = GameScreen.PLAYING
+        showToast("🎮 Nová 3D hra spustená! Preži v džungli!")
     }
 
     fun addXP(amount: Int) {
@@ -304,6 +350,8 @@ class SurvivalGame(private val context: Context) {
     }
 
     fun update(deltaTime: Float) {
+        if (currentScreen != GameScreen.PLAYING) return
+
         if (toastTimer > 0f) {
             toastTimer -= deltaTime
             if (toastTimer <= 0f) currentToast = null
@@ -340,7 +388,6 @@ class SurvivalGame(private val context: Context) {
         protein = (protein - deltaTime * 0.08f).coerceIn(0f, 100f)
         fat = (fat - deltaTime * 0.05f).coerceIn(0f, 100f)
 
-        // Fever Mechanic
         if (poisonLevel > 0f || afflictions.size > 1) {
             bodyTemp = (bodyTemp + deltaTime * 0.02f).coerceAtMost(40.5f)
         } else {
@@ -552,6 +599,7 @@ class SurvivalGame(private val context: Context) {
                 put("playerZ", playerZ)
             }
             prefs.edit().putString("save_data", json.toString()).apply()
+            showToast("💾 Hra bola úspešne uložená!")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -560,7 +608,11 @@ class SurvivalGame(private val context: Context) {
     fun loadGame() {
         try {
             val prefs = context.getSharedPreferences("green_hell_save", Context.MODE_PRIVATE)
-            val str = prefs.getString("save_data", null) ?: return
+            val str = prefs.getString("save_data", null)
+            if (str == null) {
+                showToast("❌ Žiadna uložená hra nebola nájdená!")
+                return
+            }
             val json = JSONObject(str)
             health = json.optDouble("health", 100.0).toFloat()
             stamina = json.optDouble("stamina", 100.0).toFloat()
@@ -589,7 +641,8 @@ class SurvivalGame(private val context: Context) {
             playerX = json.optDouble("playerX", 0.0).toFloat()
             playerY = json.optDouble("playerY", 1.6).toFloat()
             playerZ = json.optDouble("playerZ", 0.0).toFloat()
-            showToast("Uložená hra načítaná!")
+            currentScreen = GameScreen.PLAYING
+            showToast("📂 Uložená 3D hra načítaná!")
         } catch (e: Exception) {
             e.printStackTrace()
         }
