@@ -49,6 +49,8 @@ object Items {
     val MOLINERIA_LEAF = ItemType("molineria", "List Molinerie", "Liečivá rastlina s hojivým účinkom.", ItemCategory.MEDICAL, "🌱")
     val TOBACCO_LEAF = ItemType("tobacco", "Tabakový list", "Utišuje protiváhové travy a jed.", ItemCategory.MEDICAL, "🍃")
     val CHARCOAL = ItemType("charcoal", "Drevené uhlie", "Aktívne uhlie lieči otravu a parazity.", ItemCategory.MEDICAL, "🖤", sanityGain = 5f, healthGain = 10f)
+    val HERBAL_TEA = ItemType("herbal_tea", "Bylinkový Čaj", "Znižuje horúčku a lieči infekcie.", ItemCategory.MEDICAL, "☕", hydrationGain = 40f, healthGain = 30f, sanityGain = 15f)
+
     val BANANA = ItemType("banana", "Divoký banán", "Bohatý na sacharidy.", ItemCategory.FOOD, "🍌", carbsGain = 30f, hydrationGain = 10f)
     val COCONUT = ItemType("coconut", "Kokosový orech", "Obsahuje tuky a sviežu vodu.", ItemCategory.FOOD, "🥥", fatGain = 25f, hydrationGain = 20f)
     val RAW_MEAT = ItemType("raw_meat", "Surové mäso", "Surové mäso z lovu.", ItemCategory.FOOD, "🥩", proteinGain = 35f, healthGain = -10f, sanityGain = -15f)
@@ -82,7 +84,7 @@ object Items {
 
     val ALL = listOf(
         STICK, LONG_STICK, LOG, STONE, SHARP_STONE, BONE, OBSIDIAN, FIBER, RESIN, PALM_LEAF,
-        MOLINERIA_LEAF, TOBACCO_LEAF, CHARCOAL, BANANA, COCONUT, RAW_MEAT, COOKED_MEAT, DRIED_MEAT,
+        MOLINERIA_LEAF, TOBACCO_LEAF, CHARCOAL, HERBAL_TEA, BANANA, COCONUT, RAW_MEAT, COOKED_MEAT, DRIED_MEAT,
         RAW_FISH, COCONUT_CANTEEN, STONE_AXE, OBSIDIAN_AXE, WOODEN_SPEAR, BONE_SPEAR, SURVIVAL_BOW, ARROW,
         FIRE_TORCH, BONE_ARMOR, LEAF_BANDAGE, ANTIVENOM_BANDAGE, CAMPFIRE_ITEM, SHELTER_ITEM, LOG_WALL_ITEM,
         GATE_ITEM, LEAF_BED_ITEM, STORAGE_CHEST_ITEM, SPIKE_TRAP_ITEM, WATER_COLLECTOR_ITEM, DRYING_RACK_ITEM
@@ -117,10 +119,12 @@ object CraftingRecipes {
         CraftingRecipe(Items.SURVIVAL_BOW, 1, listOf(RecipeRequirement(Items.LONG_STICK, 1), RecipeRequirement(Items.FIBER, 2))),
         CraftingRecipe(Items.ARROW, 3, listOf(RecipeRequirement(Items.STICK, 1), RecipeRequirement(Items.SHARP_STONE, 1))),
         CraftingRecipe(Items.BONE_ARMOR, 1, listOf(RecipeRequirement(Items.BONE, 3), RecipeRequirement(Items.FIBER, 2))),
+        CraftingRecipe(Items.HERBAL_TEA, 1, listOf(RecipeRequirement(Items.MOLINERIA_LEAF, 1), RecipeRequirement(Items.COCONUT, 1))),
         CraftingRecipe(Items.FIRE_TORCH, 1, listOf(RecipeRequirement(Items.STICK, 1), RecipeRequirement(Items.FIBER, 1), RecipeRequirement(Items.RESIN, 1))),
         CraftingRecipe(Items.LEAF_BANDAGE, 1, listOf(RecipeRequirement(Items.MOLINERIA_LEAF, 2))),
         CraftingRecipe(Items.ANTIVENOM_BANDAGE, 1, listOf(RecipeRequirement(Items.LEAF_BANDAGE, 1), RecipeRequirement(Items.TOBACCO_LEAF, 1))),
         CraftingRecipe(Items.COCONUT_CANTEEN, 1, listOf(RecipeRequirement(Items.COCONUT, 1), RecipeRequirement(Items.FIBER, 1))),
+        
         CraftingRecipe(Items.CAMPFIRE_ITEM, 1, listOf(RecipeRequirement(Items.STICK, 4), RecipeRequirement(Items.STONE, 4))),
         CraftingRecipe(Items.SHELTER_ITEM, 1, listOf(RecipeRequirement(Items.LONG_STICK, 4), RecipeRequirement(Items.PALM_LEAF, 6))),
         CraftingRecipe(Items.LOG_WALL_ITEM, 1, listOf(RecipeRequirement(Items.LOG, 4), RecipeRequirement(Items.FIBER, 2))),
@@ -133,7 +137,6 @@ object CraftingRecipes {
     )
 }
 
-// Survival Perks / Skills
 data class Perk(
     val id: String,
     val name: String,
@@ -190,9 +193,15 @@ class SurvivalGame(private val context: Context) {
     var fat: Float = 50f
     var sanity: Float = 100f
     var poisonLevel: Float = 0f
+    var bodyTemp: Float = 36.6f // Body Temperature in °C (Fever mechanism)
     var parasites: Int = 0
 
-    // XP & Leveling Engine
+    // Ancient Boss State
+    var isBossActive: Boolean = true
+    var bossHealth: Float = 300f
+    var isBossDefeated: Boolean = false
+
+    // XP & Leveling
     var xp: Int = 0
     var level: Int = 1
     val unlockedPerkIds = mutableSetOf<String>()
@@ -200,7 +209,7 @@ class SurvivalGame(private val context: Context) {
     // Armor
     var equippedArmorValue: Float = 0f
 
-    // Weather Engine
+    // Weather
     var isRaining: Boolean = false
     var rainIntensity: Float = 0f
     var weatherTimer: Float = 0f
@@ -304,7 +313,7 @@ class SurvivalGame(private val context: Context) {
         if (timeOfDay >= 24f) {
             timeOfDay -= 24f
             dayCount++
-            addXP(50) // Bonus XP per survived day
+            addXP(50)
             showToast("Prežil si $dayCount. deň v džungli! +50 XP")
         }
 
@@ -330,6 +339,18 @@ class SurvivalGame(private val context: Context) {
         carbs = (carbs - deltaTime * 0.1f).coerceIn(0f, 100f)
         protein = (protein - deltaTime * 0.08f).coerceIn(0f, 100f)
         fat = (fat - deltaTime * 0.05f).coerceIn(0f, 100f)
+
+        // Fever Mechanic
+        if (poisonLevel > 0f || afflictions.size > 1) {
+            bodyTemp = (bodyTemp + deltaTime * 0.02f).coerceAtMost(40.5f)
+        } else {
+            bodyTemp = (bodyTemp - deltaTime * 0.01f).coerceAtLeast(36.6f)
+        }
+
+        if (bodyTemp > 38.5f) {
+            health -= deltaTime * 0.2f
+            stamina = (stamina - deltaTime * 2f).coerceAtLeast(0f)
+        }
 
         if (poisonLevel > 0f && !isPerkUnlocked("iron_stomach")) {
             health -= deltaTime * 0.4f
@@ -433,7 +454,10 @@ class SurvivalGame(private val context: Context) {
             health = (health + item.healthGain).coerceIn(0f, 100f)
             sanity = (sanity + item.sanityGain).coerceIn(0f, 100f)
 
-            if (item.id == Items.BONE_ARMOR.id) {
+            if (item.id == Items.HERBAL_TEA.id) {
+                bodyTemp = 36.6f
+                showToast("☕ Bylinkový čaj vyliečil horúčku!")
+            } else if (item.id == Items.BONE_ARMOR.id) {
                 equippedArmorValue = 40f
                 showToast("🛡️ Vybavil si Kostené Brnenie (+40 Obrana)!")
             } else if (item.id == Items.CHARCOAL.id) {
@@ -515,6 +539,9 @@ class SurvivalGame(private val context: Context) {
                 put("fat", fat)
                 put("sanity", sanity)
                 put("poisonLevel", poisonLevel)
+                put("bodyTemp", bodyTemp)
+                put("bossHealth", bossHealth)
+                put("isBossDefeated", isBossDefeated)
                 put("xp", xp)
                 put("level", level)
                 put("unlockedPerks", JSONArray(unlockedPerkIds))
@@ -543,6 +570,9 @@ class SurvivalGame(private val context: Context) {
             fat = json.optDouble("fat", 50.0).toFloat()
             sanity = json.optDouble("sanity", 100.0).toFloat()
             poisonLevel = json.optDouble("poisonLevel", 0.0).toFloat()
+            bodyTemp = json.optDouble("bodyTemp", 36.6).toFloat()
+            bossHealth = json.optDouble("bossHealth", 300.0).toFloat()
+            isBossDefeated = json.optBoolean("isBossDefeated", false)
             xp = json.optInt("xp", 0)
             level = json.optInt("level", 1)
 

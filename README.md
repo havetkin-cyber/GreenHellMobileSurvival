@@ -1,9 +1,9 @@
-# 🌴 Green Hell Mobile Survival 3D (AA Mid-Tier Class)
+# 🌴 Green Hell Mobile Survival 3D (Signed Release APK)
 
 [![Android Build](https://img.shields.io/badge/Android-Game-brightgreen.svg)](https://github.com/havetkin-cyber/GreenHellMobileSurvival)
 [![Platform](https://img.shields.io/badge/Platform-Android%2013%2B-blue.svg)](https://github.com/havetkin-cyber/GreenHellMobileSurvival)
 [![OpenGL ES](https://img.shields.io/badge/Graphics-OpenGL%20ES%203.0-orange.svg)](https://github.com/havetkin-cyber/GreenHellMobileSurvival)
-[![Level](https://img.shields.io/badge/Quality-AA%20Mid--Tier-gold.svg)](https://github.com/havetkin-cyber/GreenHellMobileSurvival)
+[![APK](https://img.shields.io/badge/Release-Signed%20APK-gold.svg)](https://github.com/havetkin-cyber/GreenHellMobileSurvival/blob/main/GreenHellSurvivalGame.apk)
 
 Plnohodnotná, originálna 3D mobilná survival hra strednej triedy (AA Class) vyvíjaná v rodom prostredí **Android (Kotlin + OpenGL ES 3.0 + Jetpack Compose)**.
 
@@ -11,8 +11,18 @@ Plnohodnotná, originálna 3D mobilná survival hra strednej triedy (AA Class) v
 
 ## 📲 Stiahnutie APK (Download)
 
-Súbor s hotovou hrou sa nachádza priamo v repozitári:
-📦 **[`GreenHellSurvivalGame.apk.zip`](GreenHellSurvivalGame.apk.zip)** *(Stiahni, rozbal .zip a nainštaluj .apk do svojho Android zariadenia)*.
+Súbor s podpísanou hotovou hrou sa nachádza priamo v repozitári:
+📱 **[`GreenHellSurvivalGame.apk`](GreenHellSurvivalGame.apk)** *(Priamo stiahnuteľný a podpísaný .apk súbor na inštaláciu do Androidu)*.
+
+---
+
+## 🔐 Podpisový Kľúč (Keystore Credentials)
+
+Heslo k podpisu bolo uložené do priečinka na ploche: `C:\Users\Avalo\Desktop\github\keystore_pass.txt`.
+
+* **Keystore**: `release.keystore`
+* **Heslo**: `password123`
+* **Alias**: `greenhellkey`
 
 ---
 
@@ -27,19 +37,19 @@ Súbor s hotovou hrou sa nachádza priamo v repozitári:
   * 🌿 **Bylinkár**: Obväzy liečia o +50% viac HP.
   * 🥩 **Železný Žalúdok**: Imunita voči otrave a parazitom.
 
-### 👹 2. Kmeňoví Kanibali & Monštrá (Combat & AI)
-* **Pohyb a Útoky**: Kmeňové monštrá sa voľne pohybujú džungľou. Keď spozorujú hráča, prenasledujú ho a útočia!
+### 👹 2. Kmeňoví Kanibali & Prastarý Šaman (Boss Combat & AI)
+* **Pohyb a Útoky**: Kmeňové monštrá a obrovský Prastarý Šaman (Boss) prenasledujú hráča a útočia!
 * **Obrana a Lov**: Hráč ich môže poraziť sekerou, kopijou alebo lukom.
-* **Vzácna KORISŤ**: Z porazených monštier vypadnú **Kosti (Bones)** na brnenie a **Obsidián (Obsidian)** na najsilnejšie nástroje.
+* **Vzácna KORISŤ**: Z porazených monštier vypadnú **Kosti (Bones)** na brnenie a **Obsidián (Obsidian)** na najsilnejšie nástroje. Porazením Bossa vyhráš kampaň!
 
 ### 🛖 3. Stavanie Základne & Búd (Base Building System)
 * 🪵 **Stena z Kmeňov (Log Wall)**: Pevná obranná stena okolo tvojho tábora.
 * 🚪 **Drevená Brána (Gate Door)**: Vstupná brána pre tvoju búdu.
 * 🛏️ **Posteľ z Listov (Leaf Bed)**: Pohodlné lôžko v búde na spánok.
 * 📦 **Úložná Truhlica (Chest Storage)**: Bezpečné ukladanie vecí a potravín.
-* ⚔️ **Ostnatá Pasca (Spike Trap)**: Polož pascu – spôsobuje masívne poškodenie útočiacim monštrám!
+* ⚔️ **Ostnatá Pasca (Spike Trap)**: Spôsobuje masívne poškodenie útočiacim monštrám!
 
-### ⌚ 4. Náramkové Hodinky & Kontrola Tela (Green Hell Signature)
+### ⌚ 4. Náramkové Hodinky & Kontrola Tela
 * **Makroživiny (Macros)**: Sacharidy, Bielkoviny, Tuky a Hydratácia.
 * **Kontrola Tela (Body Inspection)**: Interaktívna kontrola 4 končatín na pijavice, rany a uštipnutia.
 

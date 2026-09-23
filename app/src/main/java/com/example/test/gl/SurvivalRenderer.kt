@@ -52,10 +52,10 @@ class SurvivalRenderer(
     var targetObjectType: String? = null
     var targetObjectId: Int = -1
 
-    // World Entities (Trees, Rocks, Bushes, Animals, Snakes, Fish, Monsters)
+    // World Entities (Trees, Rocks, Bushes, Animals, Snakes, Fish, Monsters, Ancient Boss)
     data class WorldEntity(
         val id: Int,
-        val type: String, // "tree", "palm", "bush", "rock", "animal", "snake", "fish", "monster", "banana", "coconut", "tobacco"
+        val type: String, // "tree", "palm", "bush", "rock", "animal", "snake", "fish", "monster", "boss", "banana", "coconut", "tobacco"
         var x: Float,
         var y: Float,
         var z: Float,
@@ -102,15 +102,18 @@ class SurvivalRenderer(
             }
         }
 
-        // Add 3D Animals & Tribal Monsters/Cannibals
+        // Add Animals & Tribal Cannibals
         entities.add(WorldEntity(entityId++, "animal", 8f, 0f, 6f, scale = 1f))
         entities.add(WorldEntity(entityId++, "animal", -10f, 0f, -8f, scale = 0.9f))
         entities.add(WorldEntity(entityId++, "snake", 4f, 0f, 2f, scale = 0.8f))
         entities.add(WorldEntity(entityId++, "snake", -6f, 0f, 5f, scale = 0.8f))
 
-        // Monsters / Tribal Cannibals
+        // Monsters
         entities.add(WorldEntity(entityId++, "monster", 14f, 0f, 12f, scale = 1.1f, health = 120f))
         entities.add(WorldEntity(entityId++, "monster", -12f, 0f, 14f, scale = 1.1f, health = 120f))
+
+        // Giant Ancient Boss in Ruins Biome (At coords X: 25, Z: -25)
+        entities.add(WorldEntity(entityId++, "boss", 25f, 0f, -25f, scale = 2.2f, health = game.bossHealth))
 
         // River Fish
         entities.add(WorldEntity(entityId++, "fish", 0f, -0.4f, -10f, scale = 0.5f))
@@ -298,22 +301,41 @@ class SurvivalRenderer(
                     }
                 }
                 "monster" -> {
-                    // Tribal Monster AI: Stalk & Attack Player
                     val dx = game.playerX - entity.x
                     val dz = game.playerZ - entity.z
                     val dist = kotlin.math.sqrt(dx * dx + dz * dz)
 
-                    if (dist < 15f) { // Agro range
+                    if (dist < 15f) {
                         entity.x += (dx / dist) * deltaTime * 1.8f
                         entity.z += (dz / dist) * deltaTime * 1.8f
 
-                        // Attack player if in melee range
                         if (dist < 1.5f) {
                             entity.attackTimer += deltaTime
                             if (entity.attackTimer >= 1.5f) {
                                 entity.attackTimer = 0f
                                 game.applyDamageToPlayer(25f)
                                 SoundManager.playHitSound()
+                            }
+                        }
+                    }
+                }
+                "boss" -> {
+                    // Giant Ancient Boss AI & Attack Slam
+                    val dx = game.playerX - entity.x
+                    val dz = game.playerZ - entity.z
+                    val dist = kotlin.math.sqrt(dx * dx + dz * dz)
+
+                    if (dist < 20f) {
+                        entity.x += (dx / dist) * deltaTime * 1.2f
+                        entity.z += (dz / dist) * deltaTime * 1.2f
+
+                        if (dist < 2.5f) {
+                            entity.attackTimer += deltaTime
+                            if (entity.attackTimer >= 2.0f) {
+                                entity.attackTimer = 0f
+                                game.applyDamageToPlayer(40f) // Massive boss damage
+                                SoundManager.playHitSound()
+                                game.showToast("💥 PRASTARÝ ŠAMAN ŤA ZASIAHOL DUPNUTÍM!")
                             }
                         }
                     }
@@ -353,10 +375,15 @@ class SurvivalRenderer(
                 }
                 "snake" -> drawBox(entity.x, 0.1f, entity.z, 0.8f, 0.15f, 0.2f, 0.1f, 0.5f, 0.1f)
                 "monster" -> {
-                    // 3D Tribal Monster / Cannibal Mesh Body, Skull Head & Spear
-                    drawBox(entity.x, 0.9f, entity.z, 0.6f, 1.8f, 0.6f, 0.3f, 0.2f, 0.15f) // Dark body
-                    drawBox(entity.x, 1.9f, entity.z, 0.4f, 0.4f, 0.4f, 0.9f, 0.9f, 0.8f)  // Bone skull head
-                    drawBox(entity.x + 0.4f, 1.0f, entity.z, 0.08f, 0.08f, 1.6f, 0.5f, 0.3f, 0.1f) // Weapon
+                    drawBox(entity.x, 0.9f, entity.z, 0.6f, 1.8f, 0.6f, 0.3f, 0.2f, 0.15f)
+                    drawBox(entity.x, 1.9f, entity.z, 0.4f, 0.4f, 0.4f, 0.9f, 0.9f, 0.8f)
+                    drawBox(entity.x + 0.4f, 1.0f, entity.z, 0.08f, 0.08f, 1.6f, 0.5f, 0.3f, 0.1f)
+                }
+                "boss" -> {
+                    // Giant Ancient Boss 3D Mesh
+                    drawBox(entity.x, 2.2f, entity.z, 1.4f, 4.2f, 1.4f, 0.8f, 0.2f, 0.1f) // Giant Red Body
+                    drawBox(entity.x, 4.4f, entity.z, 0.9f, 0.9f, 0.9f, 1.0f, 0.85f, 0.0f) // Gold Crown Skull Head
+                    drawBox(entity.x + 0.9f, 2.5f, entity.z, 0.2f, 0.2f, 3.5f, 0.9f, 0.7f, 0.1f) // Giant Staff
                 }
                 "fish" -> drawBox(entity.x, entity.y, entity.z, 0.5f, 0.2f, 0.15f, 0.9f, 0.5f, 0.2f)
             }
@@ -390,7 +417,7 @@ class SurvivalRenderer(
             }
         }
 
-        // 4. Render Rain Particles if Raining
+        // 4. Render Rain Particles
         if (game.isRaining) {
             for (drop in rainDrops) {
                 drop[1] -= deltaTime * 12f
@@ -562,7 +589,11 @@ class SurvivalRenderer(
                         }
                     }
                     "monster" -> {
-                        val dmg = activeItem?.damage ?: 10f
+                        var dmg = activeItem?.damage ?: 10f
+                        if (game.isPerkUnlocked("hunter_instinct") && (activeItem?.id == Items.WOODEN_SPEAR.id || activeItem?.id == Items.BONE_SPEAR.id || activeItem?.id == Items.SURVIVAL_BOW.id)) {
+                            dmg *= 1.3f
+                        }
+
                         entity.health -= dmg
                         SoundManager.playHitSound()
 
@@ -571,9 +602,30 @@ class SurvivalRenderer(
                             game.addItem(Items.BONE, 3)
                             game.addItem(Items.OBSIDIAN, 1)
                             game.sanity = (game.sanity + 15f).coerceAtMost(100f)
-                            game.showToast("☠️ Porazil si Kmeňové Monštrum! Získal si 3x Kosť, 1x Obsidián")
+                            game.addXP(40)
+                            game.showToast("☠️ Porazil si Kmeňové Monštrum! (+40 XP)")
                         } else {
                             game.showToast("Zásah monštra! HP Monštra: ${entity.health.toInt()}")
+                        }
+                    }
+                    "boss" -> {
+                        var dmg = activeItem?.damage ?: 10f
+                        if (game.isPerkUnlocked("hunter_instinct") && (activeItem?.id == Items.BONE_SPEAR.id || activeItem?.id == Items.SURVIVAL_BOW.id)) {
+                            dmg *= 1.3f
+                        }
+
+                        entity.health -= dmg
+                        game.bossHealth = entity.health
+                        SoundManager.playHitSound()
+
+                        if (entity.health <= 0f) {
+                            entities.remove(entity)
+                            game.isBossDefeated = true
+                            game.addXP(200)
+                            game.sanity = 100f
+                            game.showToast("🏆 PORAZIL SI PRASTARÉHO ŠAMANA DŽUNGLE! VYHRAL SI KAMPAŇ!")
+                        } else {
+                            game.showToast("💥 Zásah Bossa! HP Šamana: ${entity.health.toInt()} / 300")
                         }
                     }
                     "snake" -> {
@@ -593,7 +645,6 @@ class SurvivalRenderer(
                 }
             }
         } else {
-            // Base Building placement
             val yawRad = Math.toRadians(game.playerYaw.toDouble())
             val spawnX = game.playerX + sin(yawRad).toFloat() * 2f
             val spawnZ = game.playerZ - cos(yawRad).toFloat() * 2f
