@@ -1,13 +1,15 @@
 package com.example.test.gl
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
+import android.opengl.GLUtils
 import android.opengl.Matrix
 import com.example.test.game.BodyAffliction
 import com.example.test.game.BodyPart
 import com.example.test.game.Items
-import com.example.test.game.SoundManager
 import com.example.test.game.SurvivalGame
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -29,18 +31,30 @@ class SurvivalRenderer(
     private val modelMatrix = FloatArray(16)
     private val mvpMatrix = FloatArray(16)
 
-    // Shaders
+    // Shaders & Uniforms
     private var programId: Int = 0
     private var uMVPMatrixLoc: Int = 0
     private var uLightPosLoc: Int = 0
     private var uLightColorLoc: Int = 0
     private var uColorLoc: Int = 0
+    private var uTextureLoc: Int = 0
+    private var uUseTextureLoc: Int = 0
     private var aPositionLoc: Int = 0
     private var aNormalLoc: Int = 0
+    private var aUVLoc: Int = 0
+
+    // Texture IDs
+    private var texGrass: Int = 0
+    private var texWood: Int = 0
+    private var texLeaves: Int = 0
+    private var texRock: Int = 0
+    private var texWater: Int = 0
+    private var texMonster: Int = 0
 
     // Mesh Buffers
     private lateinit var cubeVertexBuffer: FloatBuffer
     private lateinit var cubeNormalBuffer: FloatBuffer
+    private lateinit var cubeUVBuffer: FloatBuffer
     private lateinit var cubeIndexBuffer: ShortBuffer
     private var cubeIndexCount: Int = 0
 
@@ -48,14 +62,13 @@ class SurvivalRenderer(
     var isSwinging: Boolean = false
     private var swingProgress: Float = 0f
 
-    // Interactive Raycast Targeting
+    // Target
     var targetObjectType: String? = null
     var targetObjectId: Int = -1
 
-    // World Entities (Trees, Rocks, Bushes, Animals, Snakes, Fish, Monsters, Ancient Boss)
     data class WorldEntity(
         val id: Int,
-        val type: String, // "tree", "palm", "bush", "rock", "animal", "snake", "fish", "monster", "boss", "banana", "coconut", "tobacco"
+        val type: String,
         var x: Float,
         var y: Float,
         var z: Float,
@@ -67,7 +80,6 @@ class SurvivalRenderer(
     val entities = mutableListOf<WorldEntity>()
     private var lastTimeMs: Long = System.currentTimeMillis()
 
-    // Rain Particles
     private val rainDrops = Array(60) {
         floatArrayOf(
             (Math.random().toFloat() - 0.5f) * 40f,
@@ -102,20 +114,15 @@ class SurvivalRenderer(
             }
         }
 
-        // Add Animals & Tribal Cannibals
         entities.add(WorldEntity(entityId++, "animal", 8f, 0f, 6f, scale = 1f))
         entities.add(WorldEntity(entityId++, "animal", -10f, 0f, -8f, scale = 0.9f))
         entities.add(WorldEntity(entityId++, "snake", 4f, 0f, 2f, scale = 0.8f))
         entities.add(WorldEntity(entityId++, "snake", -6f, 0f, 5f, scale = 0.8f))
 
-        // Monsters
         entities.add(WorldEntity(entityId++, "monster", 14f, 0f, 12f, scale = 1.1f, health = 120f))
         entities.add(WorldEntity(entityId++, "monster", -12f, 0f, 14f, scale = 1.1f, health = 120f))
-
-        // Giant Ancient Boss in Ruins Biome (At coords X: 25, Z: -25)
         entities.add(WorldEntity(entityId++, "boss", 25f, 0f, -25f, scale = 2.2f, health = game.bossHealth))
 
-        // River Fish
         entities.add(WorldEntity(entityId++, "fish", 0f, -0.4f, -10f, scale = 0.5f))
         entities.add(WorldEntity(entityId++, "fish", 8f, -0.4f, -9.5f, scale = 0.5f))
     }
@@ -126,6 +133,53 @@ class SurvivalRenderer(
 
         initShaders()
         initCubeBuffers()
+        initProcedural3DTextures()
+    }
+
+    private fun initProcedural3DTextures() {
+        texGrass = generateTexture(128, 128, Color.rgb(35, 120, 35), Color.rgb(50, 160, 40))
+        texWood = generateTexture(128, 128, Color.rgb(110, 65, 30), Color.rgb(80, 45, 20))
+        texLeaves = generateTexture(128, 128, Color.rgb(20, 140, 50), Color.rgb(40, 180, 70))
+        texRock = generateTexture(128, 128, Color.rgb(110, 110, 110), Color.rgb(150, 150, 150))
+        texWater = generateTexture(128, 128, Color.rgb(20, 100, 200), Color.rgb(40, 150, 240))
+        texMonster = generateTexture(128, 128, Color.rgb(60, 40, 30), Color.rgb(200, 50, 30))
+    }
+
+    private fun generateTexture(width: Int, height: Int, baseColor: Int, noiseColor: Int): Int {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val br = Color.red(baseColor)
+        val bg = Color.green(baseColor)
+        val bb = Color.blue(baseColor)
+
+        val nr = Color.red(noiseColor)
+        val ng = Color.green(noiseColor)
+        val nb = Color.blue(noiseColor)
+
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                val factor = (Math.random() * 0.6 + 0.4).toFloat()
+                val r = (br * (1f - factor) + nr * factor).toInt().coerceIn(0, 255)
+                val g = (bg * (1f - factor) + ng * factor).toInt().coerceIn(0, 255)
+                val b = (bb * (1f - factor) + nb * factor).toInt().coerceIn(0, 255)
+                bitmap.setPixel(x, y, Color.rgb(r, g, b))
+            }
+        }
+
+        val textures = IntArray(1)
+        GLES30.glGenTextures(1, textures, 0)
+        val textureId = textures[0]
+
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR_MIPMAP_LINEAR)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_REPEAT)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_REPEAT)
+
+        GLUtils.texImage2D(GLES30.GL_TEXTURE_2D, 0, bitmap, 0)
+        GLES30.glGenerateMipmap(GLES30.GL_TEXTURE_2D)
+        bitmap.recycle()
+
+        return textureId
     }
 
     private fun initShaders() {
@@ -134,12 +188,15 @@ class SurvivalRenderer(
             uniform mat4 uMVPMatrix;
             in vec3 aPosition;
             in vec3 aNormal;
+            in vec2 aUV;
             out vec3 vNormal;
             out vec3 vPosition;
+            out vec2 vUV;
             
             void main() {
                 vPosition = aPosition;
                 vNormal = aNormal;
+                vUV = aUV;
                 gl_Position = uMVPMatrix * vec4(aPosition, 1.0);
             }
         """.trimIndent()
@@ -150,16 +207,21 @@ class SurvivalRenderer(
             uniform vec3 uLightPos;
             uniform vec3 uLightColor;
             uniform vec4 uColor;
+            uniform sampler2D uTexture;
+            uniform bool uUseTexture;
+            
             in vec3 vNormal;
             in vec3 vPosition;
+            in vec2 vUV;
             out vec4 fragColor;
             
             void main() {
                 vec3 norm = normalize(vNormal);
                 vec3 lightDir = normalize(uLightPos - vPosition);
-                float diff = max(dot(norm, lightDir), 0.3);
+                float diff = max(dot(norm, lightDir), 0.35);
                 vec3 diffuse = diff * uLightColor;
-                fragColor = vec4(uColor.rgb * diffuse, uColor.a);
+                vec4 texColor = uUseTexture ? texture(uTexture, vUV) : vec4(1.0);
+                fragColor = vec4(uColor.rgb * texColor.rgb * diffuse, uColor.a * texColor.a);
             }
         """.trimIndent()
 
@@ -175,8 +237,11 @@ class SurvivalRenderer(
         uLightPosLoc = GLES30.glGetUniformLocation(programId, "uLightPos")
         uLightColorLoc = GLES30.glGetUniformLocation(programId, "uLightColor")
         uColorLoc = GLES30.glGetUniformLocation(programId, "uColor")
+        uTextureLoc = GLES30.glGetUniformLocation(programId, "uTexture")
+        uUseTextureLoc = GLES30.glGetUniformLocation(programId, "uUseTexture")
         aPositionLoc = GLES30.glGetAttribLocation(programId, "aPosition")
         aNormalLoc = GLES30.glGetAttribLocation(programId, "aNormal")
+        aUVLoc = GLES30.glGetAttribLocation(programId, "aUV")
     }
 
     private fun loadShader(type: Int, code: String): Int {
@@ -205,6 +270,15 @@ class SurvivalRenderer(
            -1f, 0f, 0f, -1f, 0f, 0f, -1f, 0f, 0f, -1f, 0f, 0f
         )
 
+        val uvs = floatArrayOf(
+            0f, 0f,  1f, 0f,  1f, 1f,  0f, 1f,
+            0f, 0f,  1f, 0f,  1f, 1f,  0f, 1f,
+            0f, 0f,  1f, 0f,  1f, 1f,  0f, 1f,
+            0f, 0f,  1f, 0f,  1f, 1f,  0f, 1f,
+            0f, 0f,  1f, 0f,  1f, 1f,  0f, 1f,
+            0f, 0f,  1f, 0f,  1f, 1f,  0f, 1f
+        )
+
         val indices = shortArrayOf(
             0, 1, 2,  0, 2, 3,     4, 5, 6,  4, 6, 7,
             8, 9, 10, 8, 10, 11,   12, 13, 14, 12, 14, 15,
@@ -218,6 +292,9 @@ class SurvivalRenderer(
 
         cubeNormalBuffer = ByteBuffer.allocateDirect(normals.size * 4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(normals)
         cubeNormalBuffer.position(0)
+
+        cubeUVBuffer = ByteBuffer.allocateDirect(uvs.size * 4).order(ByteOrder.nativeOrder()).asFloatBuffer().put(uvs)
+        cubeUVBuffer.position(0)
 
         cubeIndexBuffer = ByteBuffer.allocateDirect(indices.size * 2).order(ByteOrder.nativeOrder()).asShortBuffer().put(indices)
         cubeIndexBuffer.position(0)
@@ -237,7 +314,6 @@ class SurvivalRenderer(
         game.update(deltaTime)
         updateCameraView()
 
-        // Sky Color based on Day/Night & Weather
         val hour = game.timeOfDay
         val sunFactor = sin((hour - 6f) / 12f * Math.PI).toFloat().coerceIn(0f, 1f)
         var skyRed = 0.1f + 0.4f * sunFactor
@@ -255,7 +331,6 @@ class SurvivalRenderer(
 
         GLES30.glUseProgram(programId)
 
-        // Light setup
         val sunAngle = (hour / 24f) * Math.PI * 2.0
         val lightX = sin(sunAngle).toFloat() * 50f
         val lightY = cos(sunAngle).toFloat() * 50f + 20f
@@ -269,9 +344,12 @@ class SurvivalRenderer(
         GLES30.glEnableVertexAttribArray(aNormalLoc)
         GLES30.glVertexAttribPointer(aNormalLoc, 3, GLES30.GL_FLOAT, false, 0, cubeNormalBuffer)
 
-        // 1. Terrain & River
-        drawBox(0f, -0.5f, 0f, 120f, 0.1f, 120f, 0.15f, 0.45f, 0.15f)
-        drawBox(0f, -0.45f, -10f, 120f, 0.05f, 8f, 0.1f, 0.4f, 0.8f)
+        GLES30.glEnableVertexAttribArray(aUVLoc)
+        GLES30.glVertexAttribPointer(aUVLoc, 2, GLES30.GL_FLOAT, false, 0, cubeUVBuffer)
+
+        // 1. Terrain & River with 3D Textures
+        drawBoxTextured(0f, -0.5f, 0f, 120f, 0.1f, 120f, 0.9f, 0.9f, 0.9f, texGrass)
+        drawBoxTextured(0f, -0.45f, -10f, 120f, 0.05f, 8f, 0.9f, 0.9f, 1.0f, texWater)
 
         // 2. Render World Entities
         targetObjectType = null
@@ -296,7 +374,6 @@ class SurvivalRenderer(
                             game.afflictions.add(BodyAffliction(BodyPart.RIGHT_LEG, "SnakeBite", "⚠️ Uštipol ťa jedovatý had!", "Antivenom"))
                             game.poisonLevel = 50f
                             game.showToast("🐍 Had ťa uštipol! Získal si jed!")
-                            SoundManager.playHitSound()
                         }
                     }
                 }
@@ -314,13 +391,11 @@ class SurvivalRenderer(
                             if (entity.attackTimer >= 1.5f) {
                                 entity.attackTimer = 0f
                                 game.applyDamageToPlayer(25f)
-                                SoundManager.playHitSound()
                             }
                         }
                     }
                 }
                 "boss" -> {
-                    // Giant Ancient Boss AI & Attack Slam
                     val dx = game.playerX - entity.x
                     val dz = game.playerZ - entity.z
                     val dist = kotlin.math.sqrt(dx * dx + dz * dz)
@@ -333,8 +408,7 @@ class SurvivalRenderer(
                             entity.attackTimer += deltaTime
                             if (entity.attackTimer >= 2.0f) {
                                 entity.attackTimer = 0f
-                                game.applyDamageToPlayer(40f) // Massive boss damage
-                                SoundManager.playHitSound()
+                                game.applyDamageToPlayer(40f)
                                 game.showToast("💥 PRASTARÝ ŠAMAN ŤA ZASIAHOL DUPNUTÍM!")
                             }
                         }
@@ -357,33 +431,32 @@ class SurvivalRenderer(
 
             when (entity.type) {
                 "tree" -> {
-                    drawBox(entity.x, 2.5f * entity.scale, entity.z, 0.6f * entity.scale, 5f * entity.scale, 0.6f * entity.scale, 0.4f, 0.25f, 0.1f)
-                    drawBox(entity.x, 5.5f * entity.scale, entity.z, 3f * entity.scale, 2.5f * entity.scale, 3f * entity.scale, 0.1f, 0.5f, 0.15f)
+                    drawBoxTextured(entity.x, 2.5f * entity.scale, entity.z, 0.6f * entity.scale, 5f * entity.scale, 0.6f * entity.scale, 0.9f, 0.9f, 0.9f, texWood)
+                    drawBoxTextured(entity.x, 5.5f * entity.scale, entity.z, 3f * entity.scale, 2.5f * entity.scale, 3f * entity.scale, 0.9f, 0.9f, 0.9f, texLeaves)
                 }
                 "palm" -> {
-                    drawBox(entity.x, 3f * entity.scale, entity.z, 0.5f * entity.scale, 6f * entity.scale, 0.5f * entity.scale, 0.45f, 0.3f, 0.12f)
-                    drawBox(entity.x, 6f * entity.scale, entity.z, 4f * entity.scale, 0.3f * entity.scale, 4f * entity.scale, 0.15f, 0.6f, 0.1f)
+                    drawBoxTextured(entity.x, 3f * entity.scale, entity.z, 0.5f * entity.scale, 6f * entity.scale, 0.5f * entity.scale, 0.9f, 0.9f, 0.9f, texWood)
+                    drawBoxTextured(entity.x, 6f * entity.scale, entity.z, 4f * entity.scale, 0.3f * entity.scale, 4f * entity.scale, 0.9f, 0.9f, 0.9f, texLeaves)
                 }
-                "bush" -> drawBox(entity.x, 0.6f, entity.z, 1.5f, 1.2f, 1.5f, 0.2f, 0.6f, 0.2f)
-                "rock" -> drawBox(entity.x, 0.3f, entity.z, 0.8f * entity.scale, 0.6f * entity.scale, 0.8f * entity.scale, 0.5f, 0.5f, 0.5f)
+                "bush" -> drawBoxTextured(entity.x, 0.6f, entity.z, 1.5f, 1.2f, 1.5f, 0.9f, 0.9f, 0.9f, texLeaves)
+                "rock" -> drawBoxTextured(entity.x, 0.3f, entity.z, 0.8f * entity.scale, 0.6f * entity.scale, 0.8f * entity.scale, 0.9f, 0.9f, 0.9f, texRock)
                 "banana" -> drawBox(entity.x, 0.3f, entity.z, 0.4f, 0.3f, 0.4f, 0.9f, 0.85f, 0.1f)
                 "coconut" -> drawBox(entity.x, 0.2f, entity.z, 0.35f, 0.35f, 0.35f, 0.35f, 0.2f, 0.05f)
-                "tobacco" -> drawBox(entity.x, 0.4f, entity.z, 0.6f, 0.8f, 0.6f, 0.2f, 0.7f, 0.3f)
+                "tobacco" -> drawBoxTextured(entity.x, 0.4f, entity.z, 0.6f, 0.8f, 0.6f, 0.9f, 0.9f, 0.9f, texLeaves)
                 "animal" -> {
-                    drawBox(entity.x, 0.6f, entity.z, 1.2f, 0.8f, 0.7f, 0.5f, 0.35f, 0.2f)
-                    drawBox(entity.x + 0.7f, 0.9f, entity.z, 0.5f, 0.4f, 0.4f, 0.6f, 0.4f, 0.25f)
+                    drawBoxTextured(entity.x, 0.6f, entity.z, 1.2f, 0.8f, 0.7f, 0.9f, 0.9f, 0.9f, texWood)
+                    drawBoxTextured(entity.x + 0.7f, 0.9f, entity.z, 0.5f, 0.4f, 0.4f, 0.9f, 0.9f, 0.9f, texWood)
                 }
                 "snake" -> drawBox(entity.x, 0.1f, entity.z, 0.8f, 0.15f, 0.2f, 0.1f, 0.5f, 0.1f)
                 "monster" -> {
-                    drawBox(entity.x, 0.9f, entity.z, 0.6f, 1.8f, 0.6f, 0.3f, 0.2f, 0.15f)
-                    drawBox(entity.x, 1.9f, entity.z, 0.4f, 0.4f, 0.4f, 0.9f, 0.9f, 0.8f)
-                    drawBox(entity.x + 0.4f, 1.0f, entity.z, 0.08f, 0.08f, 1.6f, 0.5f, 0.3f, 0.1f)
+                    drawBoxTextured(entity.x, 0.9f, entity.z, 0.6f, 1.8f, 0.6f, 1f, 1f, 1f, texMonster)
+                    drawBoxTextured(entity.x, 1.9f, entity.z, 0.4f, 0.4f, 0.4f, 0.9f, 0.9f, 0.9f, texRock)
+                    drawBoxTextured(entity.x + 0.4f, 1.0f, entity.z, 0.08f, 0.08f, 1.6f, 0.9f, 0.9f, 0.9f, texWood)
                 }
                 "boss" -> {
-                    // Giant Ancient Boss 3D Mesh
-                    drawBox(entity.x, 2.2f, entity.z, 1.4f, 4.2f, 1.4f, 0.8f, 0.2f, 0.1f) // Giant Red Body
-                    drawBox(entity.x, 4.4f, entity.z, 0.9f, 0.9f, 0.9f, 1.0f, 0.85f, 0.0f) // Gold Crown Skull Head
-                    drawBox(entity.x + 0.9f, 2.5f, entity.z, 0.2f, 0.2f, 3.5f, 0.9f, 0.7f, 0.1f) // Giant Staff
+                    drawBoxTextured(entity.x, 2.2f, entity.z, 1.4f, 4.2f, 1.4f, 1f, 1f, 1f, texMonster)
+                    drawBox(entity.x, 4.4f, entity.z, 0.9f, 0.9f, 0.9f, 1.0f, 0.85f, 0.0f)
+                    drawBoxTextured(entity.x + 0.9f, 2.5f, entity.z, 0.2f, 0.2f, 3.5f, 0.9f, 0.9f, 0.9f, texWood)
                 }
                 "fish" -> drawBox(entity.x, entity.y, entity.z, 0.5f, 0.2f, 0.15f, 0.9f, 0.5f, 0.2f)
             }
@@ -393,27 +466,27 @@ class SurvivalRenderer(
         for (struct in game.worldStructures) {
             when (struct.type) {
                 "campfire" -> {
-                    drawBox(struct.x, 0.1f, struct.z, 1.2f, 0.2f, 1.2f, 0.4f, 0.4f, 0.4f)
+                    drawBoxTextured(struct.x, 0.1f, struct.z, 1.2f, 0.2f, 1.2f, 0.9f, 0.9f, 0.9f, texRock)
                     if (struct.isLit) {
                         val fireFlicker = (sin(now / 100f) * 0.1f).toFloat()
                         drawBox(struct.x, 0.5f + fireFlicker, struct.z, 0.6f, 0.8f + fireFlicker, 0.6f, 1.0f, 0.4f, 0.0f)
                     }
                 }
-                "shelter" -> drawBox(struct.x, 1.2f, struct.z, 2.5f, 2.4f, 2.0f, 0.25f, 0.55f, 0.15f)
-                "log_wall" -> drawBox(struct.x, 1.5f, struct.z, 3.0f, 3.0f, 0.4f, 0.4f, 0.25f, 0.1f)
+                "shelter" -> drawBoxTextured(struct.x, 1.2f, struct.z, 2.5f, 2.4f, 2.0f, 0.9f, 0.9f, 0.9f, texWood)
+                "log_wall" -> drawBoxTextured(struct.x, 1.5f, struct.z, 3.0f, 3.0f, 0.4f, 0.9f, 0.9f, 0.9f, texWood)
                 "gate" -> {
-                    drawBox(struct.x - 1.2f, 1.5f, struct.z, 0.4f, 3.0f, 0.4f, 0.3f, 0.2f, 0.1f)
-                    drawBox(struct.x + 1.2f, 1.5f, struct.z, 0.4f, 3.0f, 0.4f, 0.3f, 0.2f, 0.1f)
-                    drawBox(struct.x, 1.5f, struct.z, 2.0f, 2.6f, 0.2f, 0.5f, 0.3f, 0.15f)
+                    drawBoxTextured(struct.x - 1.2f, 1.5f, struct.z, 0.4f, 3.0f, 0.4f, 0.9f, 0.9f, 0.9f, texWood)
+                    drawBoxTextured(struct.x + 1.2f, 1.5f, struct.z, 0.4f, 3.0f, 0.4f, 0.9f, 0.9f, 0.9f, texWood)
+                    drawBoxTextured(struct.x, 1.5f, struct.z, 2.0f, 2.6f, 0.2f, 0.9f, 0.9f, 0.9f, texWood)
                 }
-                "leaf_bed" -> drawBox(struct.x, 0.2f, struct.z, 1.8f, 0.3f, 2.2f, 0.15f, 0.6f, 0.15f)
-                "chest" -> drawBox(struct.x, 0.4f, struct.z, 1.0f, 0.8f, 0.8f, 0.45f, 0.3f, 0.15f)
-                "spike_trap" -> drawBox(struct.x, 0.3f, struct.z, 1.5f, 0.6f, 1.5f, 0.6f, 0.1f, 0.1f)
+                "leaf_bed" -> drawBoxTextured(struct.x, 0.2f, struct.z, 1.8f, 0.3f, 2.2f, 0.9f, 0.9f, 0.9f, texLeaves)
+                "chest" -> drawBoxTextured(struct.x, 0.4f, struct.z, 1.0f, 0.8f, 0.8f, 0.9f, 0.9f, 0.9f, texWood)
+                "spike_trap" -> drawBoxTextured(struct.x, 0.3f, struct.z, 1.5f, 0.6f, 1.5f, 0.9f, 0.9f, 0.9f, texWood)
                 "water_collector" -> {
-                    drawBox(struct.x, 0.6f, struct.z, 1.2f, 1.2f, 1.2f, 0.3f, 0.4f, 0.3f)
-                    drawBox(struct.x, 0.9f, struct.z, 1.0f, 0.2f, 1.0f, 0.1f, 0.5f, 0.9f)
+                    drawBoxTextured(struct.x, 0.6f, struct.z, 1.2f, 1.2f, 1.2f, 0.9f, 0.9f, 0.9f, texWood)
+                    drawBoxTextured(struct.x, 0.9f, struct.z, 1.0f, 0.2f, 1.0f, 0.9f, 0.9f, 1.0f, texWater)
                 }
-                "drying_rack" -> drawBox(struct.x, 1.0f, struct.z, 1.8f, 2.0f, 0.4f, 0.45f, 0.3f, 0.15f)
+                "drying_rack" -> drawBoxTextured(struct.x, 1.0f, struct.z, 1.8f, 2.0f, 0.4f, 0.9f, 0.9f, 0.9f, texWood)
             }
         }
 
@@ -473,28 +546,48 @@ class SurvivalRenderer(
 
         when (item.id) {
             Items.STONE_AXE.id, Items.OBSIDIAN_AXE.id -> {
-                drawBoxTransform(0f, 0f, 0f, 0.05f, 0.6f, 0.05f, 0.4f, 0.25f, 0.1f)
-                drawBoxTransform(0.08f, 0.25f, 0f, 0.22f, 0.15f, 0.08f, 0.5f, 0.5f, 0.5f)
+                drawBoxTransformTextured(0f, 0f, 0f, 0.05f, 0.6f, 0.05f, 0.9f, 0.9f, 0.9f, texWood)
+                drawBoxTransformTextured(0.08f, 0.25f, 0f, 0.22f, 0.15f, 0.08f, 0.9f, 0.9f, 0.9f, texRock)
             }
             Items.WOODEN_SPEAR.id, Items.BONE_SPEAR.id -> {
-                drawBoxTransform(0f, 0f, -0.3f, 0.04f, 0.04f, 1.4f, 0.45f, 0.3f, 0.12f)
-                drawBoxTransform(0f, 0f, -1.0f, 0.06f, 0.06f, 0.3f, 0.6f, 0.6f, 0.6f)
+                drawBoxTransformTextured(0f, 0f, -0.3f, 0.04f, 0.04f, 1.4f, 0.9f, 0.9f, 0.9f, texWood)
+                drawBoxTransformTextured(0f, 0f, -1.0f, 0.06f, 0.06f, 0.3f, 0.9f, 0.9f, 0.9f, texRock)
             }
             Items.SURVIVAL_BOW.id -> {
-                drawBoxTransform(-0.1f, 0f, 0f, 0.04f, 0.8f, 0.04f, 0.5f, 0.3f, 0.1f)
+                drawBoxTransformTextured(-0.1f, 0f, 0f, 0.04f, 0.8f, 0.04f, 0.9f, 0.9f, 0.9f, texWood)
                 drawBoxTransform(-0.1f, 0f, -0.2f, 0.02f, 0.02f, 0.7f, 0.9f, 0.9f, 0.9f)
             }
             Items.FIRE_TORCH.id -> {
-                drawBoxTransform(0f, 0f, 0f, 0.06f, 0.7f, 0.06f, 0.4f, 0.25f, 0.1f)
+                drawBoxTransformTextured(0f, 0f, 0f, 0.06f, 0.7f, 0.06f, 0.9f, 0.9f, 0.9f, texWood)
                 drawBoxTransform(0f, 0.4f, 0f, 0.12f, 0.2f, 0.12f, 1.0f, 0.5f, 0.0f)
             }
-            Items.COCONUT_CANTEEN.id -> drawBoxTransform(0f, 0f, 0f, 0.18f, 0.22f, 0.18f, 0.35f, 0.2f, 0.05f)
-            Items.LEAF_BANDAGE.id, Items.ANTIVENOM_BANDAGE.id -> drawBoxTransform(0f, 0f, 0f, 0.2f, 0.1f, 0.15f, 0.2f, 0.7f, 0.2f)
+            Items.COCONUT_CANTEEN.id -> drawBoxTransformTextured(0f, 0f, 0f, 0.18f, 0.22f, 0.18f, 0.9f, 0.9f, 0.9f, texWood)
+            Items.LEAF_BANDAGE.id, Items.ANTIVENOM_BANDAGE.id -> drawBoxTransformTextured(0f, 0f, 0f, 0.2f, 0.1f, 0.15f, 0.9f, 0.9f, 0.9f, texLeaves)
             else -> drawBoxTransform(0f, 0f, 0f, 0.12f, 0.12f, 0.12f, 0.8f, 0.7f, 0.2f)
         }
     }
 
     private fun drawBox(x: Float, y: Float, z: Float, sx: Float, sy: Float, sz: Float, r: Float, g: Float, b: Float) {
+        GLES30.glUniform1i(uUseTextureLoc, 0)
+        Matrix.setIdentityM(modelMatrix, 0)
+        Matrix.translateM(modelMatrix, 0, x, y, z)
+        Matrix.scaleM(modelMatrix, 0, sx, sy, sz)
+
+        Matrix.multiplyMM(mvpMatrix, 0, viewMatrix, 0, modelMatrix, 0)
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, mvpMatrix, 0)
+
+        GLES30.glUniformMatrix4fv(uMVPMatrixLoc, 1, false, mvpMatrix, 0)
+        GLES30.glUniform4f(uColorLoc, r, g, b, 1.0f)
+
+        GLES30.glDrawElements(GLES30.GL_TRIANGLES, cubeIndexCount, GLES30.GL_UNSIGNED_SHORT, cubeIndexBuffer)
+    }
+
+    private fun drawBoxTextured(x: Float, y: Float, z: Float, sx: Float, sy: Float, sz: Float, r: Float, g: Float, b: Float, textureId: Int) {
+        GLES30.glUniform1i(uUseTextureLoc, 1)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId)
+        GLES30.glUniform1i(uTextureLoc, 0)
+
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, x, y, z)
         Matrix.scaleM(modelMatrix, 0, sx, sy, sz)
@@ -509,6 +602,30 @@ class SurvivalRenderer(
     }
 
     private fun drawBoxTransform(tx: Float, ty: Float, tz: Float, sx: Float, sy: Float, sz: Float, r: Float, g: Float, b: Float) {
+        GLES30.glUniform1i(uUseTextureLoc, 0)
+        val tempMat = FloatArray(16)
+        Matrix.setIdentityM(tempMat, 0)
+        Matrix.translateM(tempMat, 0, tx, ty, tz)
+        Matrix.scaleM(tempMat, 0, sx, sy, sz)
+
+        val finalModel = FloatArray(16)
+        Matrix.multiplyMM(finalModel, 0, modelMatrix, 0, tempMat, 0)
+
+        Matrix.multiplyMM(mvpMatrix, 0, viewMatrix, 0, finalModel, 0)
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, mvpMatrix, 0)
+
+        GLES30.glUniformMatrix4fv(uMVPMatrixLoc, 1, false, mvpMatrix, 0)
+        GLES30.glUniform4f(uColorLoc, r, g, b, 1.0f)
+
+        GLES30.glDrawElements(GLES30.GL_TRIANGLES, cubeIndexCount, GLES30.GL_UNSIGNED_SHORT, cubeIndexBuffer)
+    }
+
+    private fun drawBoxTransformTextured(tx: Float, ty: Float, tz: Float, sx: Float, sy: Float, sz: Float, r: Float, g: Float, b: Float, textureId: Int) {
+        GLES30.glUniform1i(uUseTextureLoc, 1)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId)
+        GLES30.glUniform1i(uTextureLoc, 0)
+
         val tempMat = FloatArray(16)
         Matrix.setIdentityM(tempMat, 0)
         Matrix.translateM(tempMat, 0, tx, ty, tz)
@@ -533,8 +650,6 @@ class SurvivalRenderer(
         val activeStack = game.hotbar[game.selectedHotbarIndex]
         val activeItem = activeStack?.item
 
-        SoundManager.playChopSound()
-
         val targetId = targetObjectId
         val targetType = targetObjectType
 
@@ -548,7 +663,6 @@ class SurvivalRenderer(
                         game.addItem(Items.PALM_LEAF, 1)
                         if (Math.random() < 0.3) game.addItem(Items.LONG_STICK, 1)
                         game.showToast("+2 Kmeň dreva, +2 Palica, +1 Palmový list")
-                        SoundManager.playChopSound()
                     }
                     "bush" -> {
                         game.addItem(Items.FIBER, 2)
@@ -595,7 +709,6 @@ class SurvivalRenderer(
                         }
 
                         entity.health -= dmg
-                        SoundManager.playHitSound()
 
                         if (entity.health <= 0f) {
                             entities.remove(entity)
@@ -616,7 +729,6 @@ class SurvivalRenderer(
 
                         entity.health -= dmg
                         game.bossHealth = entity.health
-                        SoundManager.playHitSound()
 
                         if (entity.health <= 0f) {
                             entities.remove(entity)

@@ -1,11 +1,10 @@
-# 🌴 Green Hell Mobile Survival 3D (AAA Edition)
+# 🌴 Green Hell Mobile Survival 3D (3D Textures Edition)
 
 [![Android Build](https://img.shields.io/badge/Android-Game-brightgreen.svg)](https://github.com/havetkin-cyber/GreenHellMobileSurvival)
 [![Platform](https://img.shields.io/badge/Platform-Android%2013%2B-blue.svg)](https://github.com/havetkin-cyber/GreenHellMobileSurvival)
-[![OpenGL ES](https://img.shields.io/badge/Graphics-OpenGL%20ES%203.0-orange.svg)](https://github.com/havetkin-cyber/GreenHellMobileSurvival)
-[![Edition](https://img.shields.io/badge/Quality-AAA%20Edition-gold.svg)](https://github.com/havetkin-cyber/GreenHellMobileSurvival)
+[![OpenGL ES](https://img.shields.io/badge/Graphics-OpenGL%20ES%203.0%20Textures-orange.svg)](https://github.com/havetkin-cyber/GreenHellMobileSurvival)
 
-Plnohodnotná, originálna 3D mobilná hra najvyššej kvality (AAA Edition) vyvíjaná v rodom prostredí **Android (Kotlin + OpenGL ES 3.0 + Jetpack Compose)**.
+Plnohodnotná 3D mobilná hra na štýl **Green Hell** vyvíjaná v rodom prostredí **Android (Kotlin + OpenGL ES 3.0 3D Textures + Jetpack Compose)**.
 
 ---
 
@@ -16,27 +15,15 @@ Súbor s hotovou hrou sa nachádza priamo v repozitári:
 
 ---
 
-## 🚀 AAA Hlavné Menu & Nastavenia (Main Menu & Settings)
+## 🎨 3D Procedurálne Textúry & Grafické Vylepšenia
 
-* **🚀 Nová Hra (Start New Game)**: Inicializuje svieži 3D amazonský svet s plným výbavovým balíčkom.
-* **📂 Načítať Hru (Load Saved Game)**: Okamžité načítanie tvojej presnej pozície, postavených búd, zdravia a stavu batohu.
-* **⚙️ Nastavenia (Settings Menu)**:
-  * **Grafická Kvalita**: Voliteľné režimy Nízka / Stredná / AAA Ultra 3D (60 FPS).
-  * **Citlivosť Kamery**: Plynulý posuvník citlivosti otáčania.
-  * **Hlasitosť Zvukov & Hudby**: Nastavenie hlasitosti efektov.
-* **💾 Uložiť Hru (Save Progress)**: Ručné aj automatické ukladanie postupu.
-* **🚪 Odísť z Hry (Quit App)**: Čisté ukončenie aplikácie.
-
----
-
-## 🎮 Kompletné AAA Funkcie
-
-* 🧭 **Live 2D Minimapa**: Radar zobrazujúci kompas, blízke suroviny, zvieratá a monštrá.
-* 🪓 **3D Hotbar & Hand Weapon**: Vybavovanie zbraní priamo do 3D ruky s animáciami úderov.
-* 📖 **Zápisník Prežitia & Strom Zručností**: XP Leveling & Odomykanie 5 unikátnych perk-ov.
-* 👹 **Boj s Monštrami & Bossom**: Pralesné monštrá a obrovský Prastarý Šaman (Boss).
-* 🛖 **Stavanie Základne**: Stenové kmeňové bariéry, brány, postele, truhlice a pasce.
-* ⌚ **Hodinky & Kontrola Tela**: Sledovanie makroživín a liečenie rán na rukách a nohách.
+* 🌿 **Tráva a Terén (Grass Texture)**: 2D procedurálna mapa trávy a zeme pre realistický vzhľad pralesa.
+* 🪵 **Kôra a Drevo (Bark & Log Texture)**: 3D textúra dreva pre stromy, palmy, steny búd a zbrane.
+* 🍃 **Listy a Vetvy (Foliage Texture)**: Textúra pre pralesný porast a prístrešky.
+* 🪨 **Skaly a Žula (Rock Texture)**: Textúra pre kamene a skaly.
+* 💧 **Tečúca Voda (River Texture)**: Textúra pre vodnú hladinu v rieke.
+* 👹 **Pokožka Monštier (Tribal Skin Texture)**: Textúra s maľovaním pre kmeňové monštrá a Bossa.
+* 🔇 **Odstránené Zvuky**: Všetky zvukové stopy boli úplne odstránené podľa požiadavky.
 
 ---
 
