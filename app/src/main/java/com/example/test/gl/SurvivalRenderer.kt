@@ -4,6 +4,8 @@ import android.content.Context
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
+import com.example.test.game.BodyAffliction
+import com.example.test.game.BodyPart
 import com.example.test.game.Items
 import com.example.test.game.SoundManager
 import com.example.test.game.SurvivalGame
@@ -50,19 +52,29 @@ class SurvivalRenderer(
     var targetObjectType: String? = null
     var targetObjectId: Int = -1
 
-    // World Entities (Trees, Rocks, Bushes, Animals)
+    // World Entities (Trees, Rocks, Bushes, Animals, Snakes, Fish, Monsters)
     data class WorldEntity(
         val id: Int,
-        val type: String, // "tree", "palm", "bush", "rock", "animal", "banana", "coconut"
+        val type: String, // "tree", "palm", "bush", "rock", "animal", "snake", "fish", "monster", "banana", "coconut", "tobacco"
         var x: Float,
         var y: Float,
         var z: Float,
         var scale: Float = 1f,
-        var health: Float = 100f
+        var health: Float = 100f,
+        var attackTimer: Float = 0f
     )
 
     val entities = mutableListOf<WorldEntity>()
     private var lastTimeMs: Long = System.currentTimeMillis()
+
+    // Rain Particles
+    private val rainDrops = Array(60) {
+        floatArrayOf(
+            (Math.random().toFloat() - 0.5f) * 40f,
+            Math.random().toFloat() * 15f,
+            (Math.random().toFloat() - 0.5f) * 40f
+        )
+    }
 
     init {
         generateJungleWorld()
@@ -70,29 +82,39 @@ class SurvivalRenderer(
 
     private fun generateJungleWorld() {
         var entityId = 1
-        // Generate dense Amazonian jungle world around origin
         for (i in -15..15) {
             for (j in -15..15) {
-                if (i * i + j * j < 9) continue // Clear space around player spawn
+                if (i * i + j * j < 9) continue
 
                 val rx = i * 4f + (Math.random().toFloat() - 0.5f) * 2f
                 val rz = j * 4f + (Math.random().toFloat() - 0.5f) * 2f
                 val typeVal = Math.random()
 
                 when {
-                    typeVal < 0.35 -> entities.add(WorldEntity(entityId++, "palm", rx, 0f, rz, scale = 1f + Math.random().toFloat() * 0.5f))
-                    typeVal < 0.60 -> entities.add(WorldEntity(entityId++, "tree", rx, 0f, rz, scale = 1.2f + Math.random().toFloat() * 0.8f))
-                    typeVal < 0.75 -> entities.add(WorldEntity(entityId++, "bush", rx, 0f, rz, scale = 0.8f))
-                    typeVal < 0.88 -> entities.add(WorldEntity(entityId++, "rock", rx, 0f, rz, scale = 0.5f + Math.random().toFloat() * 0.4f))
-                    typeVal < 0.94 -> entities.add(WorldEntity(entityId++, "banana", rx, 0f, rz, scale = 0.6f))
-                    else -> entities.add(WorldEntity(entityId++, "coconut", rx, 0f, rz, scale = 0.5f))
+                    typeVal < 0.30 -> entities.add(WorldEntity(entityId++, "palm", rx, 0f, rz, scale = 1f + Math.random().toFloat() * 0.5f))
+                    typeVal < 0.50 -> entities.add(WorldEntity(entityId++, "tree", rx, 0f, rz, scale = 1.2f + Math.random().toFloat() * 0.8f))
+                    typeVal < 0.65 -> entities.add(WorldEntity(entityId++, "bush", rx, 0f, rz, scale = 0.8f))
+                    typeVal < 0.75 -> entities.add(WorldEntity(entityId++, "rock", rx, 0f, rz, scale = 0.5f + Math.random().toFloat() * 0.4f))
+                    typeVal < 0.83 -> entities.add(WorldEntity(entityId++, "banana", rx, 0f, rz, scale = 0.6f))
+                    typeVal < 0.90 -> entities.add(WorldEntity(entityId++, "coconut", rx, 0f, rz, scale = 0.5f))
+                    else -> entities.add(WorldEntity(entityId++, "tobacco", rx, 0f, rz, scale = 0.7f))
                 }
             }
         }
 
-        // Add 3d Animals (Tapir / Jaguar wandering)
+        // Add 3D Animals & Tribal Monsters/Cannibals
         entities.add(WorldEntity(entityId++, "animal", 8f, 0f, 6f, scale = 1f))
         entities.add(WorldEntity(entityId++, "animal", -10f, 0f, -8f, scale = 0.9f))
+        entities.add(WorldEntity(entityId++, "snake", 4f, 0f, 2f, scale = 0.8f))
+        entities.add(WorldEntity(entityId++, "snake", -6f, 0f, 5f, scale = 0.8f))
+
+        // Monsters / Tribal Cannibals
+        entities.add(WorldEntity(entityId++, "monster", 14f, 0f, 12f, scale = 1.1f, health = 120f))
+        entities.add(WorldEntity(entityId++, "monster", -12f, 0f, 14f, scale = 1.1f, health = 120f))
+
+        // River Fish
+        entities.add(WorldEntity(entityId++, "fish", 0f, -0.4f, -10f, scale = 0.5f))
+        entities.add(WorldEntity(entityId++, "fish", 8f, -0.4f, -9.5f, scale = 0.5f))
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
@@ -163,36 +185,12 @@ class SurvivalRenderer(
 
     private fun initCubeBuffers() {
         val vertices = floatArrayOf(
-            // Front face
-            -0.5f, -0.5f,  0.5f,
-             0.5f, -0.5f,  0.5f,
-             0.5f,  0.5f,  0.5f,
-            -0.5f,  0.5f,  0.5f,
-            // Back face
-            -0.5f, -0.5f, -0.5f,
-            -0.5f,  0.5f, -0.5f,
-             0.5f,  0.5f, -0.5f,
-             0.5f, -0.5f, -0.5f,
-            // Top face
-            -0.5f,  0.5f, -0.5f,
-            -0.5f,  0.5f,  0.5f,
-             0.5f,  0.5f,  0.5f,
-             0.5f,  0.5f, -0.5f,
-            // Bottom face
-            -0.5f, -0.5f, -0.5f,
-             0.5f, -0.5f, -0.5f,
-             0.5f, -0.5f,  0.5f,
-            -0.5f, -0.5f,  0.5f,
-            // Right face
-             0.5f, -0.5f, -0.5f,
-             0.5f,  0.5f, -0.5f,
-             0.5f,  0.5f,  0.5f,
-             0.5f, -0.5f,  0.5f,
-            // Left face
-            -0.5f, -0.5f, -0.5f,
-            -0.5f, -0.5f,  0.5f,
-            -0.5f,  0.5f,  0.5f,
-            -0.5f,  0.5f, -0.5f
+            -0.5f, -0.5f,  0.5f,   0.5f, -0.5f,  0.5f,   0.5f,  0.5f,  0.5f,  -0.5f,  0.5f,  0.5f,
+            -0.5f, -0.5f, -0.5f,  -0.5f,  0.5f, -0.5f,   0.5f,  0.5f, -0.5f,   0.5f, -0.5f, -0.5f,
+            -0.5f,  0.5f, -0.5f,  -0.5f,  0.5f,  0.5f,   0.5f,  0.5f,  0.5f,   0.5f,  0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f,   0.5f, -0.5f, -0.5f,   0.5f, -0.5f,  0.5f,  -0.5f, -0.5f,  0.5f,
+             0.5f, -0.5f, -0.5f,   0.5f,  0.5f, -0.5f,   0.5f,  0.5f,  0.5f,   0.5f, -0.5f,  0.5f,
+            -0.5f, -0.5f, -0.5f,  -0.5f, -0.5f,  0.5f,  -0.5f,  0.5f,  0.5f,  -0.5f,  0.5f, -0.5f
         )
 
         val normals = floatArrayOf(
@@ -205,12 +203,9 @@ class SurvivalRenderer(
         )
 
         val indices = shortArrayOf(
-            0, 1, 2,  0, 2, 3,
-            4, 5, 6,  4, 6, 7,
-            8, 9, 10, 8, 10, 11,
-            12, 13, 14, 12, 14, 15,
-            16, 17, 18, 16, 18, 19,
-            20, 21, 22, 20, 22, 23
+            0, 1, 2,  0, 2, 3,     4, 5, 6,  4, 6, 7,
+            8, 9, 10, 8, 10, 11,   12, 13, 14, 12, 14, 15,
+            16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23
         )
 
         cubeIndexCount = indices.size
@@ -239,54 +234,95 @@ class SurvivalRenderer(
         game.update(deltaTime)
         updateCameraView()
 
-        // Sky Color based on Day/Night Cycle
+        // Sky Color based on Day/Night & Weather
         val hour = game.timeOfDay
         val sunFactor = sin((hour - 6f) / 12f * Math.PI).toFloat().coerceIn(0f, 1f)
-        val skyRed = 0.1f + 0.4f * sunFactor
-        val skyGreen = 0.15f + 0.5f * sunFactor
-        val skyBlue = 0.3f + 0.6f * sunFactor
+        var skyRed = 0.1f + 0.4f * sunFactor
+        var skyGreen = 0.15f + 0.5f * sunFactor
+        var skyBlue = 0.3f + 0.6f * sunFactor
+
+        if (game.isRaining) {
+            skyRed *= 0.4f
+            skyGreen *= 0.4f
+            skyBlue *= 0.4f
+        }
+
         GLES30.glClearColor(skyRed, skyGreen, skyBlue, 1.0f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
 
         GLES30.glUseProgram(programId)
 
-        // Light setup (Sun position)
+        // Light setup
         val sunAngle = (hour / 24f) * Math.PI * 2.0
         val lightX = sin(sunAngle).toFloat() * 50f
         val lightY = cos(sunAngle).toFloat() * 50f + 20f
         val lightZ = 20f
         GLES30.glUniform3f(uLightPosLoc, lightX, lightY, lightZ)
-        GLES30.glUniform3f(uLightColorLoc, 1.0f, 0.95f, 0.85f)
+        GLES30.glUniform3f(uLightColorLoc, if (game.isRaining) 0.5f else 1.0f, if (game.isRaining) 0.5f else 0.95f, if (game.isRaining) 0.6f else 0.85f)
 
-        // Set Vertex attributes
         GLES30.glEnableVertexAttribArray(aPositionLoc)
         GLES30.glVertexAttribPointer(aPositionLoc, 3, GLES30.GL_FLOAT, false, 0, cubeVertexBuffer)
 
         GLES30.glEnableVertexAttribArray(aNormalLoc)
         GLES30.glVertexAttribPointer(aNormalLoc, 3, GLES30.GL_FLOAT, false, 0, cubeNormalBuffer)
 
-        // 1. Draw Terrain Ground (Jungle Grass)
+        // 1. Terrain & River
         drawBox(0f, -0.5f, 0f, 120f, 0.1f, 120f, 0.15f, 0.45f, 0.15f)
-
-        // 2. Draw River Stream
         drawBox(0f, -0.45f, -10f, 120f, 0.05f, 8f, 0.1f, 0.4f, 0.8f)
 
-        // 3. Render World Entities
+        // 2. Render World Entities
         targetObjectType = null
         targetObjectId = -1
-        var minTargetDist = 4.0f // Target interaction range
+        var minTargetDist = 4.0f
 
         val entityIterator = entities.iterator()
         while (entityIterator.hasNext()) {
             val entity = entityIterator.next()
 
-            // Animal Movement
-            if (entity.type == "animal") {
-                entity.x += sin(now / 1000f + entity.id) * 0.02f
-                entity.z += cos(now / 1000f + entity.id) * 0.02f
+            when (entity.type) {
+                "animal" -> {
+                    entity.x += sin(now / 1000f + entity.id) * 0.02f
+                    entity.z += cos(now / 1000f + entity.id) * 0.02f
+                }
+                "snake" -> {
+                    entity.x += sin(now / 800f + entity.id) * 0.015f
+                    val dx = entity.x - game.playerX
+                    val dz = entity.z - game.playerZ
+                    if (kotlin.math.sqrt(dx * dx + dz * dz) < 1.2f) {
+                        if (!game.afflictions.any { it.type == "SnakeBite" }) {
+                            game.afflictions.add(BodyAffliction(BodyPart.RIGHT_LEG, "SnakeBite", "⚠️ Uštipol ťa jedovatý had!", "Antivenom"))
+                            game.poisonLevel = 50f
+                            game.showToast("🐍 Had ťa uštipol! Získal si jed!")
+                            SoundManager.playHitSound()
+                        }
+                    }
+                }
+                "monster" -> {
+                    // Tribal Monster AI: Stalk & Attack Player
+                    val dx = game.playerX - entity.x
+                    val dz = game.playerZ - entity.z
+                    val dist = kotlin.math.sqrt(dx * dx + dz * dz)
+
+                    if (dist < 15f) { // Agro range
+                        entity.x += (dx / dist) * deltaTime * 1.8f
+                        entity.z += (dz / dist) * deltaTime * 1.8f
+
+                        // Attack player if in melee range
+                        if (dist < 1.5f) {
+                            entity.attackTimer += deltaTime
+                            if (entity.attackTimer >= 1.5f) {
+                                entity.attackTimer = 0f
+                                game.applyDamageToPlayer(25f)
+                                SoundManager.playHitSound()
+                            }
+                        }
+                    }
+                }
+                "fish" -> {
+                    entity.x += cos(now / 1200f + entity.id) * 0.03f
+                }
             }
 
-            // Check distance to player for targeting
             val dx = entity.x - game.playerX
             val dz = entity.z - game.playerZ
             val dist = kotlin.math.sqrt(dx * dx + dz * dz)
@@ -297,45 +333,73 @@ class SurvivalRenderer(
                 targetObjectId = entity.id
             }
 
-            // Render object by type
             when (entity.type) {
                 "tree" -> {
-                    // Trunk
                     drawBox(entity.x, 2.5f * entity.scale, entity.z, 0.6f * entity.scale, 5f * entity.scale, 0.6f * entity.scale, 0.4f, 0.25f, 0.1f)
-                    // Leaves
                     drawBox(entity.x, 5.5f * entity.scale, entity.z, 3f * entity.scale, 2.5f * entity.scale, 3f * entity.scale, 0.1f, 0.5f, 0.15f)
                 }
                 "palm" -> {
-                    // Curved Trunk
                     drawBox(entity.x, 3f * entity.scale, entity.z, 0.5f * entity.scale, 6f * entity.scale, 0.5f * entity.scale, 0.45f, 0.3f, 0.12f)
-                    // Palm Top
                     drawBox(entity.x, 6f * entity.scale, entity.z, 4f * entity.scale, 0.3f * entity.scale, 4f * entity.scale, 0.15f, 0.6f, 0.1f)
                 }
                 "bush" -> drawBox(entity.x, 0.6f, entity.z, 1.5f, 1.2f, 1.5f, 0.2f, 0.6f, 0.2f)
                 "rock" -> drawBox(entity.x, 0.3f, entity.z, 0.8f * entity.scale, 0.6f * entity.scale, 0.8f * entity.scale, 0.5f, 0.5f, 0.5f)
                 "banana" -> drawBox(entity.x, 0.3f, entity.z, 0.4f, 0.3f, 0.4f, 0.9f, 0.85f, 0.1f)
                 "coconut" -> drawBox(entity.x, 0.2f, entity.z, 0.35f, 0.35f, 0.35f, 0.35f, 0.2f, 0.05f)
+                "tobacco" -> drawBox(entity.x, 0.4f, entity.z, 0.6f, 0.8f, 0.6f, 0.2f, 0.7f, 0.3f)
                 "animal" -> {
-                    // 3D Animal Body & Head
                     drawBox(entity.x, 0.6f, entity.z, 1.2f, 0.8f, 0.7f, 0.5f, 0.35f, 0.2f)
                     drawBox(entity.x + 0.7f, 0.9f, entity.z, 0.5f, 0.4f, 0.4f, 0.6f, 0.4f, 0.25f)
                 }
+                "snake" -> drawBox(entity.x, 0.1f, entity.z, 0.8f, 0.15f, 0.2f, 0.1f, 0.5f, 0.1f)
+                "monster" -> {
+                    // 3D Tribal Monster / Cannibal Mesh Body, Skull Head & Spear
+                    drawBox(entity.x, 0.9f, entity.z, 0.6f, 1.8f, 0.6f, 0.3f, 0.2f, 0.15f) // Dark body
+                    drawBox(entity.x, 1.9f, entity.z, 0.4f, 0.4f, 0.4f, 0.9f, 0.9f, 0.8f)  // Bone skull head
+                    drawBox(entity.x + 0.4f, 1.0f, entity.z, 0.08f, 0.08f, 1.6f, 0.5f, 0.3f, 0.1f) // Weapon
+                }
+                "fish" -> drawBox(entity.x, entity.y, entity.z, 0.5f, 0.2f, 0.15f, 0.9f, 0.5f, 0.2f)
             }
         }
 
-        // 4. Render Placed Structures (Campfires & Shelters)
+        // 3. Render World Base Structures
         for (struct in game.worldStructures) {
-            if (struct.type == "campfire") {
-                // Stone Ring
-                drawBox(struct.x, 0.1f, struct.z, 1.2f, 0.2f, 1.2f, 0.4f, 0.4f, 0.4f)
-                // Fire Flame
-                if (struct.isLit) {
-                    val fireFlicker = (sin(now / 100f) * 0.1f).toFloat()
-                    drawBox(struct.x, 0.5f + fireFlicker, struct.z, 0.6f, 0.8f + fireFlicker, 0.6f, 1.0f, 0.4f, 0.0f)
+            when (struct.type) {
+                "campfire" -> {
+                    drawBox(struct.x, 0.1f, struct.z, 1.2f, 0.2f, 1.2f, 0.4f, 0.4f, 0.4f)
+                    if (struct.isLit) {
+                        val fireFlicker = (sin(now / 100f) * 0.1f).toFloat()
+                        drawBox(struct.x, 0.5f + fireFlicker, struct.z, 0.6f, 0.8f + fireFlicker, 0.6f, 1.0f, 0.4f, 0.0f)
+                    }
                 }
-            } else if (struct.type == "shelter") {
-                // Wooden Lean-To Frame
-                drawBox(struct.x, 1.2f, struct.z, 2.5f, 2.4f, 2.0f, 0.25f, 0.55f, 0.15f)
+                "shelter" -> drawBox(struct.x, 1.2f, struct.z, 2.5f, 2.4f, 2.0f, 0.25f, 0.55f, 0.15f)
+                "log_wall" -> drawBox(struct.x, 1.5f, struct.z, 3.0f, 3.0f, 0.4f, 0.4f, 0.25f, 0.1f)
+                "gate" -> {
+                    drawBox(struct.x - 1.2f, 1.5f, struct.z, 0.4f, 3.0f, 0.4f, 0.3f, 0.2f, 0.1f)
+                    drawBox(struct.x + 1.2f, 1.5f, struct.z, 0.4f, 3.0f, 0.4f, 0.3f, 0.2f, 0.1f)
+                    drawBox(struct.x, 1.5f, struct.z, 2.0f, 2.6f, 0.2f, 0.5f, 0.3f, 0.15f)
+                }
+                "leaf_bed" -> drawBox(struct.x, 0.2f, struct.z, 1.8f, 0.3f, 2.2f, 0.15f, 0.6f, 0.15f)
+                "chest" -> drawBox(struct.x, 0.4f, struct.z, 1.0f, 0.8f, 0.8f, 0.45f, 0.3f, 0.15f)
+                "spike_trap" -> drawBox(struct.x, 0.3f, struct.z, 1.5f, 0.6f, 1.5f, 0.6f, 0.1f, 0.1f)
+                "water_collector" -> {
+                    drawBox(struct.x, 0.6f, struct.z, 1.2f, 1.2f, 1.2f, 0.3f, 0.4f, 0.3f)
+                    drawBox(struct.x, 0.9f, struct.z, 1.0f, 0.2f, 1.0f, 0.1f, 0.5f, 0.9f)
+                }
+                "drying_rack" -> drawBox(struct.x, 1.0f, struct.z, 1.8f, 2.0f, 0.4f, 0.45f, 0.3f, 0.15f)
+            }
+        }
+
+        // 4. Render Rain Particles if Raining
+        if (game.isRaining) {
+            for (drop in rainDrops) {
+                drop[1] -= deltaTime * 12f
+                if (drop[1] < 0f) {
+                    drop[1] = 15f
+                    drop[0] = game.playerX + (Math.random().toFloat() - 0.5f) * 30f
+                    drop[2] = game.playerZ + (Math.random().toFloat() - 0.5f) * 30f
+                }
+                drawBox(drop[0], drop[1], drop[2], 0.05f, 0.4f, 0.05f, 0.7f, 0.8f, 1.0f)
             }
         }
 
@@ -373,37 +437,32 @@ class SurvivalRenderer(
 
         val swingOffset = sin(swingProgress * Math.PI).toFloat() * 0.4f
 
-        // First-Person Camera Space Transformation
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, game.playerX, game.playerY, game.playerZ)
         Matrix.rotateM(modelMatrix, 0, -game.playerYaw, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, game.playerPitch, 1f, 0f, 0f)
 
-        // Offset to bottom right of screen (Holding in hand)
         Matrix.translateM(modelMatrix, 0, 0.4f, -0.3f - swingOffset, -0.6f + swingOffset * 0.2f)
 
-        // Draw 3D Held Item Model
         when (item.id) {
-            Items.STONE_AXE.id -> {
-                // Wooden Handle
+            Items.STONE_AXE.id, Items.OBSIDIAN_AXE.id -> {
                 drawBoxTransform(0f, 0f, 0f, 0.05f, 0.6f, 0.05f, 0.4f, 0.25f, 0.1f)
-                // Stone Axe Head
                 drawBoxTransform(0.08f, 0.25f, 0f, 0.22f, 0.15f, 0.08f, 0.5f, 0.5f, 0.5f)
             }
-            Items.WOODEN_SPEAR.id -> {
-                // Long Shaft
+            Items.WOODEN_SPEAR.id, Items.BONE_SPEAR.id -> {
                 drawBoxTransform(0f, 0f, -0.3f, 0.04f, 0.04f, 1.4f, 0.45f, 0.3f, 0.12f)
-                // Spear Tip
                 drawBoxTransform(0f, 0f, -1.0f, 0.06f, 0.06f, 0.3f, 0.6f, 0.6f, 0.6f)
             }
+            Items.SURVIVAL_BOW.id -> {
+                drawBoxTransform(-0.1f, 0f, 0f, 0.04f, 0.8f, 0.04f, 0.5f, 0.3f, 0.1f)
+                drawBoxTransform(-0.1f, 0f, -0.2f, 0.02f, 0.02f, 0.7f, 0.9f, 0.9f, 0.9f)
+            }
             Items.FIRE_TORCH.id -> {
-                // Torch Stick
                 drawBoxTransform(0f, 0f, 0f, 0.06f, 0.7f, 0.06f, 0.4f, 0.25f, 0.1f)
-                // Torch Flame
                 drawBoxTransform(0f, 0.4f, 0f, 0.12f, 0.2f, 0.12f, 1.0f, 0.5f, 0.0f)
             }
             Items.COCONUT_CANTEEN.id -> drawBoxTransform(0f, 0f, 0f, 0.18f, 0.22f, 0.18f, 0.35f, 0.2f, 0.05f)
-            Items.LEAF_BANDAGE.id -> drawBoxTransform(0f, 0f, 0f, 0.2f, 0.1f, 0.15f, 0.2f, 0.7f, 0.2f)
+            Items.LEAF_BANDAGE.id, Items.ANTIVENOM_BANDAGE.id -> drawBoxTransform(0f, 0f, 0f, 0.2f, 0.1f, 0.15f, 0.2f, 0.7f, 0.2f)
             else -> drawBoxTransform(0f, 0f, 0f, 0.12f, 0.12f, 0.12f, 0.8f, 0.7f, 0.2f)
         }
     }
@@ -449,7 +508,6 @@ class SurvivalRenderer(
 
         SoundManager.playChopSound()
 
-        // Interact with targeted 3D entity
         val targetId = targetObjectId
         val targetType = targetObjectType
 
@@ -458,10 +516,11 @@ class SurvivalRenderer(
             if (entity != null) {
                 when (targetType) {
                     "tree", "palm" -> {
+                        game.addItem(Items.LOG, 2)
                         game.addItem(Items.STICK, 2)
                         game.addItem(Items.PALM_LEAF, 1)
                         if (Math.random() < 0.3) game.addItem(Items.LONG_STICK, 1)
-                        game.showToast("+2 Drevená palica, +1 Palmový list")
+                        game.showToast("+2 Kmeň dreva, +2 Palica, +1 Palmový list")
                         SoundManager.playChopSound()
                     }
                     "bush" -> {
@@ -470,8 +529,14 @@ class SurvivalRenderer(
                         entities.remove(entity)
                         game.showToast("+2 Rastlinné vlákno, +1 Molineria")
                     }
+                    "tobacco" -> {
+                        game.addItem(Items.TOBACCO_LEAF, 2)
+                        entities.remove(entity)
+                        game.showToast("+2 Tabakový list zozbieraný!")
+                    }
                     "rock" -> {
                         game.addItem(Items.STONE, 2)
+                        if (Math.random() < 0.2) game.addItem(Items.OBSIDIAN, 1)
                         entities.remove(entity)
                         game.showToast("+2 Kameň zozbieraný!")
                     }
@@ -486,44 +551,99 @@ class SurvivalRenderer(
                         game.showToast("+1 Kokosový orech zozbieraný!")
                     }
                     "animal" -> {
-                        if (activeItem?.id == Items.WOODEN_SPEAR.id) {
+                        if (activeItem?.id == Items.WOODEN_SPEAR.id || activeItem?.id == Items.BONE_SPEAR.id || activeItem?.id == Items.SURVIVAL_BOW.id) {
+                            if (activeItem.id == Items.SURVIVAL_BOW.id) game.removeItem(Items.ARROW, 1)
                             game.addItem(Items.RAW_MEAT, 2)
+                            game.addItem(Items.BONE, 1)
                             entities.remove(entity)
-                            game.showToast("Ulovil si zviera! +2 Surové mäso")
+                            game.showToast("Ulovil si zviera! +2 Surové mäso, +1 Kosť")
                         } else {
-                            game.showToast("Na lov zveri potrebuješ kopiju!")
+                            game.showToast("Na lov zveri potrebuješ kopiju alebo luk!")
+                        }
+                    }
+                    "monster" -> {
+                        val dmg = activeItem?.damage ?: 10f
+                        entity.health -= dmg
+                        SoundManager.playHitSound()
+
+                        if (entity.health <= 0f) {
+                            entities.remove(entity)
+                            game.addItem(Items.BONE, 3)
+                            game.addItem(Items.OBSIDIAN, 1)
+                            game.sanity = (game.sanity + 15f).coerceAtMost(100f)
+                            game.showToast("☠️ Porazil si Kmeňové Monštrum! Získal si 3x Kosť, 1x Obsidián")
+                        } else {
+                            game.showToast("Zásah monštra! HP Monštra: ${entity.health.toInt()}")
+                        }
+                    }
+                    "snake" -> {
+                        game.addItem(Items.RAW_MEAT, 1)
+                        entities.remove(entity)
+                        game.showToast("Zabil si hada! +1 Surové mäso")
+                    }
+                    "fish" -> {
+                        if (activeItem?.id == Items.WOODEN_SPEAR.id || activeItem?.id == Items.BONE_SPEAR.id) {
+                            game.addItem(Items.RAW_FISH, 1)
+                            entities.remove(entity)
+                            game.showToast("Ulovil si rybu v rieke! +1 Čerstvá ryba")
+                        } else {
+                            game.showToast("Na lov rýb v rieke potrebuješ kopiju!")
                         }
                     }
                 }
             }
         } else {
-            // Build structures if structure item active
-            if (activeItem?.id == Items.CAMPFIRE_ITEM.id) {
-                game.worldStructures.add(
-                    com.example.test.game.WorldStructure(
-                        "struct_${System.currentTimeMillis()}",
-                        "campfire",
-                        game.playerX + sin(Math.toRadians(game.playerYaw.toDouble())).toFloat() * 2f,
-                        0f,
-                        game.playerZ - cos(Math.toRadians(game.playerYaw.toDouble())).toFloat() * 2f,
-                        isLit = true,
-                        hasMeatCooking = true
-                    )
-                )
-                game.removeItem(Items.CAMPFIRE_ITEM, 1)
-                game.showToast("Postavil si a zapálil Ohnisko! Mäso sa varí.")
-            } else if (activeItem?.id == Items.SHELTER_ITEM.id) {
-                game.worldStructures.add(
-                    com.example.test.game.WorldStructure(
-                        "struct_${System.currentTimeMillis()}",
-                        "shelter",
-                        game.playerX + sin(Math.toRadians(game.playerYaw.toDouble())).toFloat() * 2.5f,
-                        0f,
-                        game.playerZ - cos(Math.toRadians(game.playerYaw.toDouble())).toFloat() * 2.5f
-                    )
-                )
-                game.removeItem(Items.SHELTER_ITEM, 1)
-                game.showToast("Postavil si Prístrešok na spanie!")
+            // Base Building placement
+            val yawRad = Math.toRadians(game.playerYaw.toDouble())
+            val spawnX = game.playerX + sin(yawRad).toFloat() * 2f
+            val spawnZ = game.playerZ - cos(yawRad).toFloat() * 2f
+
+            when (activeItem?.id) {
+                Items.CAMPFIRE_ITEM.id -> {
+                    game.worldStructures.add(com.example.test.game.WorldStructure("struct_${System.currentTimeMillis()}", "campfire", spawnX, 0f, spawnZ, isLit = true, hasItemInProcess = true))
+                    game.removeItem(Items.CAMPFIRE_ITEM, 1)
+                    game.showToast("Postavil si a zapálil Ohnisko!")
+                }
+                Items.SHELTER_ITEM.id -> {
+                    game.worldStructures.add(com.example.test.game.WorldStructure("struct_${System.currentTimeMillis()}", "shelter", spawnX, 0f, spawnZ))
+                    game.removeItem(Items.SHELTER_ITEM, 1)
+                    game.showToast("Postavil si Prístrešok na spanie!")
+                }
+                Items.LOG_WALL_ITEM.id -> {
+                    game.worldStructures.add(com.example.test.game.WorldStructure("struct_${System.currentTimeMillis()}", "log_wall", spawnX, 0f, spawnZ))
+                    game.removeItem(Items.LOG_WALL_ITEM, 1)
+                    game.showToast("Postavil si Stenu Základne z Kmeňov!")
+                }
+                Items.GATE_ITEM.id -> {
+                    game.worldStructures.add(com.example.test.game.WorldStructure("struct_${System.currentTimeMillis()}", "gate", spawnX, 0f, spawnZ))
+                    game.removeItem(Items.GATE_ITEM, 1)
+                    game.showToast("Postavil si Vstupnú Bránu Základne!")
+                }
+                Items.LEAF_BED_ITEM.id -> {
+                    game.worldStructures.add(com.example.test.game.WorldStructure("struct_${System.currentTimeMillis()}", "leaf_bed", spawnX, 0f, spawnZ))
+                    game.removeItem(Items.LEAF_BED_ITEM, 1)
+                    game.showToast("Postavil si Posteľ z Listov v búde!")
+                }
+                Items.STORAGE_CHEST_ITEM.id -> {
+                    game.worldStructures.add(com.example.test.game.WorldStructure("struct_${System.currentTimeMillis()}", "chest", spawnX, 0f, spawnZ))
+                    game.removeItem(Items.STORAGE_CHEST_ITEM, 1)
+                    game.showToast("Postavil si Úložnú Truhlicu!")
+                }
+                Items.SPIKE_TRAP_ITEM.id -> {
+                    game.worldStructures.add(com.example.test.game.WorldStructure("struct_${System.currentTimeMillis()}", "spike_trap", spawnX, 0f, spawnZ))
+                    game.removeItem(Items.SPIKE_TRAP_ITEM, 1)
+                    game.showToast("Položil si Ostnatú Pascu na Monštrá!")
+                }
+                Items.WATER_COLLECTOR_ITEM.id -> {
+                    game.worldStructures.add(com.example.test.game.WorldStructure("struct_${System.currentTimeMillis()}", "water_collector", spawnX, 0f, spawnZ))
+                    game.removeItem(Items.WATER_COLLECTOR_ITEM, 1)
+                    game.showToast("Postavil si Zberač Dažďovej Vody!")
+                }
+                Items.DRYING_RACK_ITEM.id -> {
+                    game.worldStructures.add(com.example.test.game.WorldStructure("struct_${System.currentTimeMillis()}", "drying_rack", spawnX, 0f, spawnZ, hasItemInProcess = true))
+                    game.removeItem(Items.DRYING_RACK_ITEM, 1)
+                    game.showToast("Postavil si Sušiak na Mäso!")
+                }
             }
         }
     }

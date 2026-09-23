@@ -15,52 +15,34 @@ Súbor s hotovou hrou sa nachádza priamo v repozitári:
 
 ---
 
-## 🎮 Herné Funkcie & Mechaniky (Green Hell Features)
+## 👹 Nové Rozšírené Funkcie (Monštrá & Stavba Búd)
 
-### ⌚ 1. Nudzové Inteligentné Hodinky (Green Hell Smartwatch)
-* **Makroživiny (Macros)**:
-  * 🟡 **Sacharidy (Carbohydrates)**: Dopĺňajú sa ovocím (banány, kokosy).
-  * 🔴 **Bielkoviny (Proteins)**: Dopĺňajú sa pečeným mäsom z lovu.
-  * 🟢 **Tuky (Fats)**: Dopĺňajú sa kokosmi a tukom zo zveri.
-  * 🔵 **Hydratácia (Hydration)**: Dopĺňa sa pitím z čutory alebo rieky.
-* **Kompas & Čas**: Zobrazuje presný čas, deň prežitia a tep srdca ❤️.
+### 👹 1. Kmeňoví Kanibali & Monštrá (Monsters & Combat AI)
+* **Pohyb a Útoky**: Kmeňové monštrá sa voľne pohybujú džungľou. Keď zbadajú hráča, prenasledujú ho a útočia!
+* **Obrana a Lov**: Hráč ich môže poraziť sekerou, kopijou alebo lukom.
+* **Vzácna KORISŤ**: Z porazených monštier vypadnú **Kosti (Bones)** na brnenie a **Obsidián (Obsidian)** na najsilnejšie nástroje.
 
-### 🩸 2. Kontrola Tela & Rán (Body Inspection System)
-* Interaktívna kontrola končatín: **Ľavá ruka**, **Pravá ruka**, **Ľavá noha**, **Pravá noha**.
-* Detekcia zranení: **Pijavice (Leeches)**, **Rany (Cuts)**, **Uštipnutia hadom**.
-* Možnosť manuálneho odtrhnutia pijavíc ✋ alebo priloženia bylinkového obväzu z listu Molineria 🩹.
+### 🛖 2. Stavanie Búd & Základne (Base Building System)
+* 🪵 **Stena z Kmeňov (Log Wall)**: Pevná obranná stena okolo tvojho tábora.
+* 🚪 **Drevená Brána (Gate Door)**: Vstupná brána pre tvoju búdu.
+* 🛏️ **Posteľ z Listov (Leaf Bed)**: Pohodlné lôžko v búde na regeneráciu energie a spánok.
+* 📦 **Úložná Truhlica (Chest Storage)**: Bezpečné ukladanie prebytočných surovin a potravín.
+* ⚔️ **Ostnatá Pasca (Spike Trap)**: Polož pascu – spôsobuje masívne poškodenie útočiacim monštrám!
 
-### 🪓 3. Lišta Rýchleho Prístupu (Hotbar)
-* 6 rýchlych slotov v spodnej časti obrazovky pre plynulé prepínanie nástrojov a zbraní.
-* Vybraný nástroj sa okamžite vykreslí v 3D ruke postavy s animáciou švihu/útoku.
-
-### 🎒 4. Batoh & Výroba (Inventory & Crafting Notebook)
-* **Recepty (Crafting Recipes)**:
-  * 🪓 **Kamená sekera**: 2x Palica + 1x Kameň + 1x Vlákno
-  * 🗡️ **Drevená kopija**: 1x Dlhá palica + 1x Ostrý kameň (určená na lov)
-  * 🔥 **Hooriaca fakľa**: 1x Palica + 1x Vlákno + 1x Živica
-  * 🏕️ **Ohnisko**: 4x Palice + 4x Kamene
-  * 🛖 **Prístrešok**: 4x Dlhé palice + 6x Palmové listy
-  * 🩹 **Bylinkový obväz**: 2x Listy Molinerie
-  * 🥥 **Kokosová čutora**: 1x Kokos + 1x Vlákno
-
-### 🌴 5. 3D Svet & Atmosféra (3D Engine)
-* Vykresľovanie v **OpenGL ES 3.0** pri 60 FPS.
-* Hustá amazonská džungľa: Palmy, stromy, bambusy, kríky, rieka, skaly a voľne sa pohybujúca zver.
-* Dynamický cyklus dňa a noci (Svit, Deň, Západ slnka, Tmavočierna noc).
-* Osvetlenie fakľou a ohňom v noci.
-
-### 🎵 6. Zvukový Syntetizátor (Procedural Audio Engine)
-* Procedurálne generované zvuky pre rúbanie dreva, útoky, kroky v tráve, pitie vody a stravovanie.
+### 🛡️ 3. Nové Zbrane & Brnenie
+* 🪓 **Obsidiánová Sekera**: Najsilnejší nástroj na rúbanie a boj.
+* 🗡️ **Kostená Kopija**: Vysoké poškodenie proti monštrám.
+* 🛡️ **Kostené Brnenie**: Znižuje poškodenie od útokov až o **40%**.
 
 ---
 
-## 🏗️ Technická Štruktúra
-* **Jazyk**: Kotlin
-* **Grafické rozhranie UI**: Jetpack Compose (Material 3)
-* **3D Renderer**: Custom OpenGL ES 3.0 (`GLES30`)
-* **Zvukový Engine**: Native AudioTrack Procedural Synthesizer
-* **Ukladanie**: Automatické ukladanie do lokálneho úložiska (SharedPreferences)
+## 🎮 Základné Funkcie
+
+* ⌚ **Núdzové Inteligentné Hodinky (Green Hell Smartwatch)**
+* 🩸 **Kontrola Tela & Rán (Body Inspection System)**
+* 🪓 **Lišta Rýchleho Prístupu (Hotbar - 6 slots)**
+* 🎒 **Batoh & Výroba (Inventory & Crafting Notebook)**
+* 🌧️ **Tropické Počasie & Zberač Dažďovej Vody**
 
 ---
 
