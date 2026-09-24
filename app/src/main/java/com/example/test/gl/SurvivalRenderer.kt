@@ -51,7 +51,13 @@ class SurvivalRenderer(
     private var texWater: Int = 0
     private var texMonster: Int = 0
 
-    // Mesh Buffers
+    // Low-Poly OBJ Models
+    private var objPalmTree: ObjModel? = null
+    private var objJungleTree: ObjModel? = null
+    private var objRock: ObjModel? = null
+    private var objStoneAxe: ObjModel? = null
+
+    // Mesh Buffers (Cube Primitive)
     private lateinit var cubeVertexBuffer: FloatBuffer
     private lateinit var cubeNormalBuffer: FloatBuffer
     private lateinit var cubeUVBuffer: FloatBuffer
@@ -134,6 +140,18 @@ class SurvivalRenderer(
         initShaders()
         initCubeBuffers()
         initProcedural3DTextures()
+        loadLowPolyOBJModels()
+    }
+
+    private fun loadLowPolyOBJModels() {
+        try {
+            objPalmTree = ObjModel.loadFromAssets(context, "models/palm_tree.obj")
+            objJungleTree = ObjModel.loadFromAssets(context, "models/jungle_tree.obj")
+            objRock = ObjModel.loadFromAssets(context, "models/rock.obj")
+            objStoneAxe = ObjModel.loadFromAssets(context, "models/stone_axe.obj")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun initProcedural3DTextures() {
@@ -338,16 +356,7 @@ class SurvivalRenderer(
         GLES30.glUniform3f(uLightPosLoc, lightX, lightY, lightZ)
         GLES30.glUniform3f(uLightColorLoc, if (game.isRaining) 0.5f else 1.0f, if (game.isRaining) 0.5f else 0.95f, if (game.isRaining) 0.6f else 0.85f)
 
-        GLES30.glEnableVertexAttribArray(aPositionLoc)
-        GLES30.glVertexAttribPointer(aPositionLoc, 3, GLES30.GL_FLOAT, false, 0, cubeVertexBuffer)
-
-        GLES30.glEnableVertexAttribArray(aNormalLoc)
-        GLES30.glVertexAttribPointer(aNormalLoc, 3, GLES30.GL_FLOAT, false, 0, cubeNormalBuffer)
-
-        GLES30.glEnableVertexAttribArray(aUVLoc)
-        GLES30.glVertexAttribPointer(aUVLoc, 2, GLES30.GL_FLOAT, false, 0, cubeUVBuffer)
-
-        // 1. Terrain & River with 3D Textures
+        // 1. Terrain & River
         drawBoxTextured(0f, -0.5f, 0f, 120f, 0.1f, 120f, 0.9f, 0.9f, 0.9f, texGrass)
         drawBoxTextured(0f, -0.45f, -10f, 120f, 0.05f, 8f, 0.9f, 0.9f, 1.0f, texWater)
 
@@ -431,15 +440,27 @@ class SurvivalRenderer(
 
             when (entity.type) {
                 "tree" -> {
-                    drawBoxTextured(entity.x, 2.5f * entity.scale, entity.z, 0.6f * entity.scale, 5f * entity.scale, 0.6f * entity.scale, 0.9f, 0.9f, 0.9f, texWood)
-                    drawBoxTextured(entity.x, 5.5f * entity.scale, entity.z, 3f * entity.scale, 2.5f * entity.scale, 3f * entity.scale, 0.9f, 0.9f, 0.9f, texLeaves)
+                    if (objJungleTree != null) {
+                        drawObjModel(objJungleTree!!, entity.x, 0f, entity.z, entity.scale, texWood)
+                    } else {
+                        drawBoxTextured(entity.x, 2.5f * entity.scale, entity.z, 0.6f * entity.scale, 5f * entity.scale, 0.6f * entity.scale, 0.9f, 0.9f, 0.9f, texWood)
+                    }
                 }
                 "palm" -> {
-                    drawBoxTextured(entity.x, 3f * entity.scale, entity.z, 0.5f * entity.scale, 6f * entity.scale, 0.5f * entity.scale, 0.9f, 0.9f, 0.9f, texWood)
-                    drawBoxTextured(entity.x, 6f * entity.scale, entity.z, 4f * entity.scale, 0.3f * entity.scale, 4f * entity.scale, 0.9f, 0.9f, 0.9f, texLeaves)
+                    if (objPalmTree != null) {
+                        drawObjModel(objPalmTree!!, entity.x, 0f, entity.z, entity.scale, texWood)
+                    } else {
+                        drawBoxTextured(entity.x, 3f * entity.scale, entity.z, 0.5f * entity.scale, 6f * entity.scale, 0.5f * entity.scale, 0.9f, 0.9f, 0.9f, texWood)
+                    }
                 }
                 "bush" -> drawBoxTextured(entity.x, 0.6f, entity.z, 1.5f, 1.2f, 1.5f, 0.9f, 0.9f, 0.9f, texLeaves)
-                "rock" -> drawBoxTextured(entity.x, 0.3f, entity.z, 0.8f * entity.scale, 0.6f * entity.scale, 0.8f * entity.scale, 0.9f, 0.9f, 0.9f, texRock)
+                "rock" -> {
+                    if (objRock != null) {
+                        drawObjModel(objRock!!, entity.x, 0f, entity.z, entity.scale, texRock)
+                    } else {
+                        drawBoxTextured(entity.x, 0.3f, entity.z, 0.8f * entity.scale, 0.6f * entity.scale, 0.8f * entity.scale, 0.9f, 0.9f, 0.9f, texRock)
+                    }
+                }
                 "banana" -> drawBox(entity.x, 0.3f, entity.z, 0.4f, 0.3f, 0.4f, 0.9f, 0.85f, 0.1f)
                 "coconut" -> drawBox(entity.x, 0.2f, entity.z, 0.35f, 0.35f, 0.35f, 0.35f, 0.2f, 0.05f)
                 "tobacco" -> drawBoxTextured(entity.x, 0.4f, entity.z, 0.6f, 0.8f, 0.6f, 0.9f, 0.9f, 0.9f, texLeaves)
@@ -507,6 +528,25 @@ class SurvivalRenderer(
         renderHeldFirstPersonItem()
     }
 
+    private fun drawObjModel(model: ObjModel, x: Float, y: Float, z: Float, scale: Float, textureId: Int) {
+        GLES30.glUniform1i(uUseTextureLoc, 1)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId)
+        GLES30.glUniform1i(uTextureLoc, 0)
+
+        Matrix.setIdentityM(modelMatrix, 0)
+        Matrix.translateM(modelMatrix, 0, x, y, z)
+        Matrix.scaleM(modelMatrix, 0, scale, scale, scale)
+
+        Matrix.multiplyMM(mvpMatrix, 0, viewMatrix, 0, modelMatrix, 0)
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, mvpMatrix, 0)
+
+        GLES30.glUniformMatrix4fv(uMVPMatrixLoc, 1, false, mvpMatrix, 0)
+        GLES30.glUniform4f(uColorLoc, 1f, 1f, 1f, 1f)
+
+        model.draw(aPositionLoc, aNormalLoc, aUVLoc)
+    }
+
     private fun updateCameraView() {
         val radYaw = Math.toRadians(game.playerYaw.toDouble())
         val radPitch = Math.toRadians(game.playerPitch.toDouble())
@@ -546,8 +586,12 @@ class SurvivalRenderer(
 
         when (item.id) {
             Items.STONE_AXE.id, Items.OBSIDIAN_AXE.id -> {
-                drawBoxTransformTextured(0f, 0f, 0f, 0.05f, 0.6f, 0.05f, 0.9f, 0.9f, 0.9f, texWood)
-                drawBoxTransformTextured(0.08f, 0.25f, 0f, 0.22f, 0.15f, 0.08f, 0.9f, 0.9f, 0.9f, texRock)
+                if (objStoneAxe != null) {
+                    drawObjModelTransform(objStoneAxe!!, 0f, 0f, 0f, 1.2f, texRock)
+                } else {
+                    drawBoxTransformTextured(0f, 0f, 0f, 0.05f, 0.6f, 0.05f, 0.9f, 0.9f, 0.9f, texWood)
+                    drawBoxTransformTextured(0.08f, 0.25f, 0f, 0.22f, 0.15f, 0.08f, 0.9f, 0.9f, 0.9f, texRock)
+                }
             }
             Items.WOODEN_SPEAR.id, Items.BONE_SPEAR.id -> {
                 drawBoxTransformTextured(0f, 0f, -0.3f, 0.04f, 0.04f, 1.4f, 0.9f, 0.9f, 0.9f, texWood)
@@ -567,6 +611,29 @@ class SurvivalRenderer(
         }
     }
 
+    private fun drawObjModelTransform(model: ObjModel, tx: Float, ty: Float, tz: Float, scale: Float, textureId: Int) {
+        GLES30.glUniform1i(uUseTextureLoc, 1)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId)
+        GLES30.glUniform1i(uTextureLoc, 0)
+
+        val tempMat = FloatArray(16)
+        Matrix.setIdentityM(tempMat, 0)
+        Matrix.translateM(tempMat, 0, tx, ty, tz)
+        Matrix.scaleM(tempMat, 0, scale, scale, scale)
+
+        val finalModel = FloatArray(16)
+        Matrix.multiplyMM(finalModel, 0, modelMatrix, 0, tempMat, 0)
+
+        Matrix.multiplyMM(mvpMatrix, 0, viewMatrix, 0, finalModel, 0)
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, mvpMatrix, 0)
+
+        GLES30.glUniformMatrix4fv(uMVPMatrixLoc, 1, false, mvpMatrix, 0)
+        GLES30.glUniform4f(uColorLoc, 1f, 1f, 1f, 1f)
+
+        model.draw(aPositionLoc, aNormalLoc, aUVLoc)
+    }
+
     private fun drawBox(x: Float, y: Float, z: Float, sx: Float, sy: Float, sz: Float, r: Float, g: Float, b: Float) {
         GLES30.glUniform1i(uUseTextureLoc, 0)
         Matrix.setIdentityM(modelMatrix, 0)
@@ -578,6 +645,15 @@ class SurvivalRenderer(
 
         GLES30.glUniformMatrix4fv(uMVPMatrixLoc, 1, false, mvpMatrix, 0)
         GLES30.glUniform4f(uColorLoc, r, g, b, 1.0f)
+
+        GLES30.glEnableVertexAttribArray(aPositionLoc)
+        GLES30.glVertexAttribPointer(aPositionLoc, 3, GLES30.GL_FLOAT, false, 0, cubeVertexBuffer)
+
+        GLES30.glEnableVertexAttribArray(aNormalLoc)
+        GLES30.glVertexAttribPointer(aNormalLoc, 3, GLES30.GL_FLOAT, false, 0, cubeNormalBuffer)
+
+        GLES30.glEnableVertexAttribArray(aUVLoc)
+        GLES30.glVertexAttribPointer(aUVLoc, 2, GLES30.GL_FLOAT, false, 0, cubeUVBuffer)
 
         GLES30.glDrawElements(GLES30.GL_TRIANGLES, cubeIndexCount, GLES30.GL_UNSIGNED_SHORT, cubeIndexBuffer)
     }
@@ -598,6 +674,15 @@ class SurvivalRenderer(
         GLES30.glUniformMatrix4fv(uMVPMatrixLoc, 1, false, mvpMatrix, 0)
         GLES30.glUniform4f(uColorLoc, r, g, b, 1.0f)
 
+        GLES30.glEnableVertexAttribArray(aPositionLoc)
+        GLES30.glVertexAttribPointer(aPositionLoc, 3, GLES30.GL_FLOAT, false, 0, cubeVertexBuffer)
+
+        GLES30.glEnableVertexAttribArray(aNormalLoc)
+        GLES30.glVertexAttribPointer(aNormalLoc, 3, GLES30.GL_FLOAT, false, 0, cubeNormalBuffer)
+
+        GLES30.glEnableVertexAttribArray(aUVLoc)
+        GLES30.glVertexAttribPointer(aUVLoc, 2, GLES30.GL_FLOAT, false, 0, cubeUVBuffer)
+
         GLES30.glDrawElements(GLES30.GL_TRIANGLES, cubeIndexCount, GLES30.GL_UNSIGNED_SHORT, cubeIndexBuffer)
     }
 
@@ -616,6 +701,15 @@ class SurvivalRenderer(
 
         GLES30.glUniformMatrix4fv(uMVPMatrixLoc, 1, false, mvpMatrix, 0)
         GLES30.glUniform4f(uColorLoc, r, g, b, 1.0f)
+
+        GLES30.glEnableVertexAttribArray(aPositionLoc)
+        GLES30.glVertexAttribPointer(aPositionLoc, 3, GLES30.GL_FLOAT, false, 0, cubeVertexBuffer)
+
+        GLES30.glEnableVertexAttribArray(aNormalLoc)
+        GLES30.glVertexAttribPointer(aNormalLoc, 3, GLES30.GL_FLOAT, false, 0, cubeNormalBuffer)
+
+        GLES30.glEnableVertexAttribArray(aUVLoc)
+        GLES30.glVertexAttribPointer(aUVLoc, 2, GLES30.GL_FLOAT, false, 0, cubeUVBuffer)
 
         GLES30.glDrawElements(GLES30.GL_TRIANGLES, cubeIndexCount, GLES30.GL_UNSIGNED_SHORT, cubeIndexBuffer)
     }
@@ -639,6 +733,15 @@ class SurvivalRenderer(
 
         GLES30.glUniformMatrix4fv(uMVPMatrixLoc, 1, false, mvpMatrix, 0)
         GLES30.glUniform4f(uColorLoc, r, g, b, 1.0f)
+
+        GLES30.glEnableVertexAttribArray(aPositionLoc)
+        GLES30.glVertexAttribPointer(aPositionLoc, 3, GLES30.GL_FLOAT, false, 0, cubeVertexBuffer)
+
+        GLES30.glEnableVertexAttribArray(aNormalLoc)
+        GLES30.glVertexAttribPointer(aNormalLoc, 3, GLES30.GL_FLOAT, false, 0, cubeNormalBuffer)
+
+        GLES30.glEnableVertexAttribArray(aUVLoc)
+        GLES30.glVertexAttribPointer(aUVLoc, 2, GLES30.GL_FLOAT, false, 0, cubeUVBuffer)
 
         GLES30.glDrawElements(GLES30.GL_TRIANGLES, cubeIndexCount, GLES30.GL_UNSIGNED_SHORT, cubeIndexBuffer)
     }
