@@ -100,37 +100,47 @@ class SurvivalRenderer(
 
     private fun generateJungleWorld() {
         var entityId = 1
-        for (i in -15..15) {
-            for (j in -15..15) {
-                if (i * i + j * j < 9) continue
+        for (i in -35..35 step 2) {
+            for (j in -35..35 step 2) {
+                if (i * i + j * j < 12) continue
 
-                val rx = i * 4f + (Math.random().toFloat() - 0.5f) * 2f
-                val rz = j * 4f + (Math.random().toFloat() - 0.5f) * 2f
+                val rx = i * 4.5f + (Math.random().toFloat() - 0.5f) * 3f
+                val rz = j * 4.5f + (Math.random().toFloat() - 0.5f) * 3f
                 val typeVal = Math.random()
 
                 when {
-                    typeVal < 0.30 -> entities.add(WorldEntity(entityId++, "palm", rx, 0f, rz, scale = 1f + Math.random().toFloat() * 0.5f))
-                    typeVal < 0.50 -> entities.add(WorldEntity(entityId++, "tree", rx, 0f, rz, scale = 1.2f + Math.random().toFloat() * 0.8f))
-                    typeVal < 0.65 -> entities.add(WorldEntity(entityId++, "bush", rx, 0f, rz, scale = 0.8f))
-                    typeVal < 0.75 -> entities.add(WorldEntity(entityId++, "rock", rx, 0f, rz, scale = 0.5f + Math.random().toFloat() * 0.4f))
-                    typeVal < 0.83 -> entities.add(WorldEntity(entityId++, "banana", rx, 0f, rz, scale = 0.6f))
-                    typeVal < 0.90 -> entities.add(WorldEntity(entityId++, "coconut", rx, 0f, rz, scale = 0.5f))
+                    typeVal < 0.32 -> entities.add(WorldEntity(entityId++, "palm", rx, 0f, rz, scale = 1f + Math.random().toFloat() * 0.6f))
+                    typeVal < 0.55 -> entities.add(WorldEntity(entityId++, "tree", rx, 0f, rz, scale = 1.2f + Math.random().toFloat() * 0.9f))
+                    typeVal < 0.68 -> entities.add(WorldEntity(entityId++, "bush", rx, 0f, rz, scale = 0.8f))
+                    typeVal < 0.78 -> entities.add(WorldEntity(entityId++, "rock", rx, 0f, rz, scale = 0.5f + Math.random().toFloat() * 0.5f))
+                    typeVal < 0.85 -> entities.add(WorldEntity(entityId++, "banana", rx, 0f, rz, scale = 0.6f))
+                    typeVal < 0.92 -> entities.add(WorldEntity(entityId++, "coconut", rx, 0f, rz, scale = 0.5f))
                     else -> entities.add(WorldEntity(entityId++, "tobacco", rx, 0f, rz, scale = 0.7f))
                 }
             }
         }
 
-        entities.add(WorldEntity(entityId++, "animal", 8f, 0f, 6f, scale = 1f))
-        entities.add(WorldEntity(entityId++, "animal", -10f, 0f, -8f, scale = 0.9f))
-        entities.add(WorldEntity(entityId++, "snake", 4f, 0f, 2f, scale = 0.8f))
-        entities.add(WorldEntity(entityId++, "snake", -6f, 0f, 5f, scale = 0.8f))
+        // Expanded Animals across map
+        for (a in 0 until 8) {
+            val ax = (Math.random().toFloat() - 0.5f) * 120f
+            val az = (Math.random().toFloat() - 0.5f) * 120f
+            entities.add(WorldEntity(entityId++, "animal", ax, 0f, az, scale = 1f))
+            entities.add(WorldEntity(entityId++, "snake", ax + 2f, 0f, az + 2f, scale = 0.8f))
+        }
 
-        entities.add(WorldEntity(entityId++, "monster", 14f, 0f, 12f, scale = 1.1f, health = 120f))
-        entities.add(WorldEntity(entityId++, "monster", -12f, 0f, 14f, scale = 1.1f, health = 120f))
-        entities.add(WorldEntity(entityId++, "boss", 25f, 0f, -25f, scale = 2.2f, health = game.bossHealth))
+        // Tribal Monster Outposts
+        entities.add(WorldEntity(entityId++, "monster", 20f, 0f, 18f, scale = 1.1f, health = 120f))
+        entities.add(WorldEntity(entityId++, "monster", -25f, 0f, 22f, scale = 1.1f, health = 120f))
+        entities.add(WorldEntity(entityId++, "monster", 40f, 0f, -30f, scale = 1.2f, health = 150f))
 
-        entities.add(WorldEntity(entityId++, "fish", 0f, -0.4f, -10f, scale = 0.5f))
-        entities.add(WorldEntity(entityId++, "fish", 8f, -0.4f, -9.5f, scale = 0.5f))
+        // Giant Ancient Boss in Ruins Biome (At coords X: 50, Z: -50)
+        entities.add(WorldEntity(entityId++, "boss", 50f, 0f, -50f, scale = 2.2f, health = game.bossHealth))
+
+        // River Fish
+        for (f in 0 until 6) {
+            val fx = (Math.random().toFloat() - 0.5f) * 100f
+            entities.add(WorldEntity(entityId++, "fish", fx, -0.4f, -10f, scale = 0.5f))
+        }
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
@@ -356,9 +366,9 @@ class SurvivalRenderer(
         GLES30.glUniform3f(uLightPosLoc, lightX, lightY, lightZ)
         GLES30.glUniform3f(uLightColorLoc, if (game.isRaining) 0.5f else 1.0f, if (game.isRaining) 0.5f else 0.95f, if (game.isRaining) 0.6f else 0.85f)
 
-        // 1. Terrain & River
-        drawBoxTextured(0f, -0.5f, 0f, 120f, 0.1f, 120f, 0.9f, 0.9f, 0.9f, texGrass)
-        drawBoxTextured(0f, -0.45f, -10f, 120f, 0.05f, 8f, 0.9f, 0.9f, 1.0f, texWater)
+        // 1. Vast Terrain & River Stream (350m x 350m Map Size)
+        drawBoxTextured(0f, -0.5f, 0f, 350f, 0.1f, 350f, 0.9f, 0.9f, 0.9f, texGrass)
+        drawBoxTextured(0f, -0.45f, -10f, 350f, 0.05f, 10f, 0.9f, 0.9f, 1.0f, texWater)
 
         // 2. Render World Entities
         targetObjectType = null
