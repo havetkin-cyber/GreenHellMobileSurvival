@@ -59,9 +59,23 @@ fun MainMenuView(
             // Menu Buttons List
             Column(
                 modifier = Modifier.fillMaxWidth(0.8f),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Resume Game Button (Visible when game is running)
+                if (game.hasGameStarted) {
+                    Button(
+                        onClick = { game.resumeGame() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                    ) {
+                        Text("▶️ POKRAČOVAŤ V HRE (SPÄŤ)", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+
                 // Start New Game Button
                 Button(
                     onClick = { game.startNewGame() },

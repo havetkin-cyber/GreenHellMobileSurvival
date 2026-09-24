@@ -204,6 +204,7 @@ data class WorldStructure(
 class SurvivalGame(private val context: Context) {
     // Current Active Screen as Observable Compose State
     var currentScreen by mutableStateOf(GameScreen.MAIN_MENU)
+    var hasGameStarted by mutableStateOf(false)
 
     // Settings
     var graphicsQuality by mutableStateOf(GraphicsQuality.ULTRA_3D)
@@ -293,6 +294,13 @@ class SurvivalGame(private val context: Context) {
         afflictions.add(BodyAffliction(BodyPart.LEFT_ARM, "Leech", "Prisatá pijavica pije tvoju krv!", "Hand"))
     }
 
+    fun resumeGame() {
+        if (hasGameStarted) {
+            currentScreen = GameScreen.PLAYING
+            showToast("▶️ Návrat do hry!")
+        }
+    }
+
     fun startNewGame() {
         health = 100f
         stamina = 100f
@@ -313,6 +321,7 @@ class SurvivalGame(private val context: Context) {
         playerYaw = 0f
         playerPitch = 0f
         initStarterKit()
+        hasGameStarted = true
         currentScreen = GameScreen.PLAYING
         showToast("🎮 Nová 3D hra spustená! Preži v džungli!")
     }
