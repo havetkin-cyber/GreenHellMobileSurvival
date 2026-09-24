@@ -1,5 +1,6 @@
 package com.example.test
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -19,6 +20,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         game = SurvivalGame(applicationContext)
 
         setContent {
