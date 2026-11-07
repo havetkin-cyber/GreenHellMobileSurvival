@@ -1,0 +1,15 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.4",
+	"Category": "",
+	"Description": "Alexia Chronicles - 3D akcna RPG v style HIT2",
+	"Modules": [
+		{
+			"Name": "AlexiaChronicles",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [ "Engine", "AIModule", "DeveloperSettings" ]
+		}
+	],
+	"TargetPlatforms": [ "Android", "Windows", "Linux" ]
+}
